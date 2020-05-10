@@ -35,6 +35,7 @@ diss: diss.pdf
 diss.pdf: diss.tex $(ALL_TEX)
 	sed -i 's/^\\\includeonly/% \\\includeonly/g' diss.tex
 	latexmk $(LATEXMK_ARGS) diss.tex
+	cp out/diss.pdf ar899.pdf
 
 .PHONY: proposal
 proposal: proposal.pdf
@@ -58,6 +59,7 @@ ar899.tar.gz: $(CODE_TO_SUBMIT)
 
 .PHONY: submit
 submit: diss.pdf ar899.tar.gz
+	cp out/diss.pdf ../ar899.pdf
 	cp out/diss.pdf ../ar899.pdf
 	cp ar899.tar.gz ../ar899.tar.gz
 

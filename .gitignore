@@ -307,3 +307,5 @@ TSWLatexianTemp*
 *.lpz
 node_modules
 htmldocs.pdf
+a.tex
+ar899.pdf
