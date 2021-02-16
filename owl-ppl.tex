@@ -5,27 +5,27 @@
 %% values in them; it is your responsibility as an author to replace
 %% the commands and values with those provided to you when you
 %% complete the rights form.
-\setcopyright{acmcopyright}
-\copyrightyear{2018}
-\acmYear{2018}
-\acmDOI{10.1145/1122445.1122456}
+% \setcopyright{acmcopyright}
+% \copyrightyear{2018}
+% \acmYear{2018}
+% \acmDOI{10.1145/1122445.1122456}
 
 %% These commands are for a PROCEEDINGS abstract or paper.
-\acmConference[Woodstock '18]{Woodstock '18: ACM Symposium on Neural
-  Gaze Detection}{June 03--05, 2018}{Woodstock, NY}
-\acmBooktitle{Woodstock '18: ACM Symposium on Neural Gaze Detection,
-  June 03--05, 2018, Woodstock, NY}
-\acmPrice{15.00}
-\acmISBN{978-1-4503-XXXX-X/18/06}
+% \acmConference[Woodstock '18]{Woodstock '18: ACM Symposium on Neural
+%   Gaze Detection}{June 03--05, 2018}{Woodstock, NY}
+% \acmBooktitle{Woodstock '18: ACM Symposium on Neural Gaze Detection,
+%   June 03--05, 2018, Woodstock, NY}
+% \acmPrice{15.00}
+% \acmISBN{978-1-4503-XXXX-X/18/06}
 
 %%
 %% Submission ID.
 %% Use this when submitting an article to a sponsored event. You'll
 %% receive a unique submission ID from the organizers
 %% of the event, and this ID should be used as the parameter to this command.
-%% \acmSubmissionID{123-A56-BU3}
+\acmSubmissionID{74}
 
-\usepackage{subfig}
+\usepackage{subcaption}
 
 \usepackage{pgfplots}
 \usepackage{pgfplotstable}
@@ -53,6 +53,23 @@
 \let\endcminted\endminted
 \xpretocmd{\cminted}{\RecustomVerbatimEnvironment{Verbatim}{BVerbatim}{}}{}{}
 
+\usepackage{xspace}
+
+\newcommand\note[2]{\color{#1}\bf #2}
+\newcommand\mort[1]{{\note{red}{mort: #1}}}
+% \newcommand\mortl[1]{{\color{red} mort: \begin{itemize}#1\end{itemize}}}
+
+\newcommand{\one}{({\em i})\/}
+\newcommand{\two}{({\em ii})\/}
+\newcommand{\three}{({\em iii})\/}
+\newcommand{\four}{({\em iv})\/}
+\newcommand{\five}{({\em v})\/}
+
+\newcommand{\sampling}{\emph{sampling}\xspace}
+\newcommand{\s}[1]{(\S\ref{#1})}
+
+\newcommand{\pupil}{Pupil\xspace}
+
 %%
 %% end of the preamble, start of the body of the document source.
 \begin{document}
@@ -60,7 +77,10 @@
 %%
 %% The "title" command has an optional parameter,
 %% allowing the author to define a "short title" to be used in page headers.
-\title{The Name of the Title is Hope}
+\title{
+  \pupil, an Efficient Trace-Based, Type-Safe \\
+  Probabilistic Programming Language
+}
 
 %%
 %% The "author" command and its associated commands are used to define
@@ -68,29 +88,22 @@
 %% Of note is the shared affiliation of the first two authors, and the
 %% "authornote" and "authornotemark" commands
 %% used to denote shared contribution to the research.
-\author{Ben Trovato}
-\authornote{Both authors contributed equally to this research.}
-\email{trovato@corporation.com}
-\orcid{1234-5678-9012}
-\author{G.K.M. Tobin}
-\authornotemark[1]
-\email{webmaster@marysville-ohio.com}
+\author{Anik Roy}
+\authornote{Work carried out for final year undergraduate project.}
 \affiliation{%
-  \institution{Institute for Clarity in Documentation}
-  \streetaddress{P.O. Box 1212}
-  \city{Dublin}
-  \state{Ohio}
-  \country{USA}
-  \postcode{43017-6221}
+  \institution{Christ's College}
+  \city{Cambridge University}
+  \country{UK}
 }
+\email{anik545@gmail.com}
 
-\author{Lars Th{\o}rv{\"a}ld}
+\author{Richard Mortier}
 \affiliation{%
-  \institution{The Th{\o}rv{\"a}ld Group}
-  \streetaddress{1 Th{\o}rv{\"a}ld Circle}
-  \city{Hekla}
-  \country{Iceland}}
-\email{larst@affiliation.org}
+  \institution{Department of Computer Science \& Technology}
+  \city{Cambridge University}
+  \country{UK}
+}
+\email{richard.mortier@cl.cam.ac.uk}
 
 %%
 %% By default, the full list of authors will be used in the page
@@ -104,12 +117,7 @@
 %% The abstract is a short summary of the work to be presented in the
 %% article.
 \begin{abstract}
-  A clear and well-documented \LaTeX\ document is presented as an
-  article formatted for publication by ACM in a conference proceedings
-  or journal publication. Based on the ``acmart'' document class, this
-  article presents and explains many of the common variations, as well
-  as many of the formatting elements an author may use in the
-  preparation of the documentation of their work.
+  Creating statistical models and performing inference on these models is key to data science. A probabilistic programming language (PPL) is a language for creating complex models by composing simpler models and probability distributions, separating inference from model specification, allowing inference to be performed automatically~\cite{gordon2014probabilistic}. We present \emph{\pupil}, a shallow embedded PPL in the OCaml language that leverages OCaml's expressive type system and efficient native code generation. We compare \pupil's performance to that of two well-known alternative PPLs, Anglican and WebPPL, We find that \pupil outperforms WebPPL in inference speed and is commensurate with Anglican, and in both cases uses substantially less memory, making it particularly appropriate for use in edge computing applications.
 \end{abstract}
 
 %%
@@ -159,19 +167,13 @@
 \section{Introduction}
 \label{s:introduction}
 
-\textit{This dissertation presents a universal probabilistic programming language, OwlPPL, implemented as a domain specific language embedded within OCaml. I discuss the design decisions involved in developing this system. and evaluate its performance and suitability as a tool to be used in data science}.
+Creating statistical models and performing inference on these models is key to data science. Such modelling involves formulating a prior belief over some parameters ($x$), the generative model ($p(x)$), and a set of conditions ($p(y|x)$) which specify the likelihood of observed data given the parameters. The goal is then to find the posterior, the (inferred) distribution over the parameters given the data we observe ($p(x|y)$). As this is generally intractable, approximate methods are used -- but it can be difficult to disentangle the approximation method from the model, reducing re-usability of methods and robustness of implementation.
 
-Creating statistical models and performing inference on these models is key to data science. Such modelling involves formulating a prior belief over some parameters, the generative model ($p(x)$), and a set of conditions ($p(y|x)$) which specify the likelihood of observed data given the parameters. The goal is then to find the posterior, the (inferred) distribution over the parameters given the data we observe ($p(x|y)$). In general, this kind of Bayesian inference is intractable, so we must use methods which approximate the posterior.
+A probabilistic programming language (PPL) is a language for creating complex models by composing simpler models and probability distributions, separating inference from model specification, allowing inference to be performed automatically~\cite{gordon2014probabilistic}. This has numerous advantages: inference code is written and optimised once, independent of model; many different inference algorithms can be provided, suitable for different problems; and models can be written by domain experts, without concern for inference.~\s{s:related}
 
-A probabilistic programming language (PPL) is a language used to create complex models through composition of simpler models and probability distributions, and allows inference to be performed automatically on these models. The problem of efficient inference is then separated from the specification of the model. Inference code can be written and optimised once, independent of specific models, and probabilistic models can be written by domain experts, without having to worry about hand-writing inference. The inference `engine' can also implement many different inference algorithms, allowing selection of methods appropriate to the models being used.
+PPLs can be standalone languages or embedded into another language, giving access to the full power of the host language, making it easier to combine models. We present \emph{\pupil}, a shallow embedded PPL in the OCaml language that leverages OCaml's expressive type system and efficient native code generation. \pupil can represent a wide variety of models, not limited to finite graphical models or discrete distributions, and provides several inference procedures. Distributions are represented using a Generalised Algebraic Data Type (GADT) as a monad, allowing distributions to be combined type-safely to build models.~\s{s:pupil}
 
-PPLs allow us to create these models as programs in code. Generative models are built by taking samples from probability distributions, so PPLs need some way of modelling this non-determinism. Being able to condition the values of variables on data is the other key part of PPLs, since we are interested in the posterior, which is conditional on the data. Without conditioning, we can run a program forwards, which generates samples from the model we write (the prior). By taking into account conditioning, we can infer the distribution of the input parameters based on the data we observe and sample from this distribution.
-
-PPLs can either be standalone languages or be embedded into another language. Embedding a PPL into a pre-existing language allows utilising the full power of the host language, and gives access to operations in the host language without having to implement them independently. This makes it easier to combine models with each other as well as integrate them more easily into other programs written in the host language. Specifically, embedding a domain specific languages (DSL) into OCaml allows us to represent a wide range of models using OCaml's inbuilt syntax and libraries, as well as leverage OCaml features such as an expressive type system or efficient native code generation.
-
-The original aim was to design and implement a language in OCaml, which allows the user to specify probabilistic models naturally in code, and perform inference on these models automatically in order to separate the concerns of defining generative models and performing inference. Exact Bayesian inference is intractable in practice, so I needed to develop approximate algorithms. I aimed to allow users to build models from a set of primitive distributions, and choose from a selection of inference algorithms to perform inference. An efficient and expressive way to represent and combine distributions needed to be developed.
-
-I have achieved all the initial requirements. My PPL exists as a shallowly embedded DSL in OCaml, is able to represent a wide variety of models, and is not limited to finite graphical models or discrete distributions. I have implemented several inference procedures, exceeding my initial requirements, and shown that they are correct using statistical tests on simple problems solved analytically. I represent distributions as a GADT which is a monad, allowing distributions to be combined to build up models. I have also included functionality to easily create plots from distributions.
+We show that \pupil's inference algorithms are correct using statistical tests on simple programs that can be solved analytically. We compare \pupil's performance to that of two well-known alternative PPLs, Anglican and WebPPL, We find that \pupil outperforms WebPPL in inference speed, and is commensurate with Anglican. In both cases, \pupil exhibits significantly lower memory usage making it particularly suitable for low-resource availability environments such as edge computing.~\s{s:evaluation}
 
 \section{Related Work}
 \label{s:related}
