@@ -6,7 +6,7 @@ DROPPINGS = *.bbl *.fls _region_.* *.xdv *.synctex.gz *.fdb_latexmk *.xdv *.pyg
 .PHONY: all
 all: $(PAPER).pdf
 
-$(PAPER).pdf: $(wildcard *.tex) $(wildcard *.bib) $(wildcard figs/*.pdf)
+$(PAPER).pdf: $(wildcard *.tex) $(wildcard tikz/*.tex) $(wildcard *.bib) $(wildcard figs/*.pdf)
 	mkdir -p out
 	$(LATEXMK) $(PAPER)
 
