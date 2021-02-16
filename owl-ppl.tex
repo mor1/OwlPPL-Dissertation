@@ -178,27 +178,28 @@ We show that \pupil's inference algorithms are correct using statistical tests o
 \section{Related Work}
 \label{s:related}
 
-There are many examples of PPLs, both as DSLs embedded into other languages (including OCaml) and as standalone compilers. Some early PPLs, such as BUGS~\cite{gilks1994bugs} or JAGS~\cite{plummer2004jags}, limited the types of models representable in the language to finite graphical models, where the model could be expressed as a static graph of random variables and their relationships. Restricting the types of possible models can lead to efficient implementations of inference algorithms. Languages such as STAN~\cite{carpenter2017stan} or Infer.NET~\cite{wang2011using} exploit this, and do not allow, for example, unbounded recursion when defining models. PPLs which can express models that have an unlimited number of random variables (and so do not compile to a static graph) are known as `universal'~\cite{borgstrom2016lambda}, and include Church~\cite{goodman2012church}, WebPPL~\cite{mobus2018structure} and Anglican~\cite{anglican-smc}. These tends to lead to slower inference procedures due to the need to support a greater range of models. Some PPLs restrict the types of distribution allowed, for example HANSEI~\cite{kiselyov2009embedded} and IBAL~\cite{ibal} only allow discrete distributions. A summary of some PPLs is given in Table \ref{tab:ppl-summ}.
-
 \begin{table}
   \centering
-  \begin{tabular}{@{}lllp{3cm}l@{}}
+  \begin{tabular}{ l l c c l }
     \toprule
     \textbf{PPL}
-    & \textbf{Embedded In}
-    & \textbf{Universal}
-    & \textbf{Continuous Distributions}
+    & \textbf{Host}
+    & \textbf{Universal?}
+    & \textbf{Continuous?}
     & \textbf{Year} \\
     \midrule
 
     BUGS~\cite{gilks1994bugs}
-    & N/A & \xmark & \cmark & 1994 \\
+    & --- & \xmark & \cmark & 1994 \\
 
     IBAL~\cite{ibal}
     & OCaml & \xmark & \xmark & 2000 \\
 
     JAGS~\cite{plummer2004jags}
-    & N/A & \xmark & \cmark & 2004 \\
+    & --- & \xmark & \cmark & 2004 \\
+
+    Erwig~\cite{erwig}
+    & Haskell & \cmark & \cmark & 2006\\
 
     Church~\cite{goodman2012church}
     & LISP & \cmark & \cmark & 2008 \\
@@ -210,78 +211,56 @@ There are many examples of PPLs, both as DSLs embedded into other languages (inc
     & F\# & \xmark & \cmark & 2011 \\
 
     STAN~\cite{carpenter2017stan}
-    & N/A & \xmark & \cmark & 2012 \\
+    & --- & \xmark & \cmark & 2012 \\
 
     Anglican~\cite{anglican-smc}
     & Clojure & \cmark & \cmark & 2014 \\
 
+    Edward~\cite{edward}
+    & --- & \xmark & \cmark & 2017\\
+
     WebPPL~\cite{mobus2018structure}
-    & JavaScript (node.js) & \cmark & \cmark & 2018 \\
+    & JavaScript & \cmark & \cmark & 2018 \\
 
     Pyro~\cite{bingham2019pyro}
     & Python & \cmark & \cmark & 2019 \\
 
-    OwlPPL
+    \pupil
     & OCaml & \cmark & \cmark & 2020 \\
     \bottomrule
   \end{tabular}
-  \caption{A selection of current probabilistic programming languages (PPLs).}
+  \caption{A selection of current PPLs, their host languages, and whether they are universal and support continuous distributions.}
   \label{tab:ppl-summ}
 \end{table}
 
+There are many examples of PPLs, both as DSLs embedded into other languages (including OCaml) and as standalone compilers. Standalone languages have their own syntax and compiler, so can be fine tuned to the task of inference, but often lack features since they have to be built from scratch. Embedded languages can utilise facilities in their host language, such as type checking, compilers or libraries, as well as allowing programs to be integrated into existing systems easily, but they must work around the syntax and semantics of the host language. Some early PPLs, such as BUGS~\cite{gilks1994bugs} or JAGS~\cite{plummer2004jags}, limited the types of models representable in the language to finite graphical models, where the model could be expressed as a static graph of random variables and their relationships.
 
-\section{Owl PPL}
+Many languages restrict the set of allowed models in order to use more efficient inference algorithms which can take advantage of the restricted structure of models. Universal languages can represent any model, but suffer from less predictable inference procedures since many properties of the model (such as the number of random variables) are not available at compile-time. Restricting the types of possible models can lead to efficient implementations of inference algorithms. Languages such as STAN~\cite{carpenter2017stan} or Infer.NET~\cite{wang2011using} exploit this, and do not allow, for example, unbounded recursion when defining models.
 
-There do exist PPLs embedded in OCaml, such as IBAL \cite{ibal} or HANSEI \cite{kiselyov2009embedded}. PPLs have also been embedded in other languages, such as WebPPL \cite{mobus2018structure}, Church \cite{goodman2012church} or Infer.Net \cite{wang2011using}. My PPL used some of the ideas introduced by these languages, particularly in implementing efficient inference engines. I needed to research the different approaches taken by these PPLs and decide what form of PPL to implement, especially in deciding the types of model I wanted my PPL to be able to represent and the inference methods I implemented.
+PPLs which can express models that have an unlimited number of random variables (and so do not compile to a static graph) are known as `universal'~\cite{borgstrom2016lambda}, and include Church~\cite{goodman2012church}, WebPPL~\cite{mobus2018structure} and Anglican~\cite{anglican-smc}. These tend to be slower at inference due to the need to support a greater range of models. Some PPLs restrict the types of distribution allowed, for example HANSEI~\cite{kiselyov2009embedded} and IBAL~\cite{ibal} only allow discrete distributions.
 
-I used an existing OCaml numerical computation library (Owl). This library does not contain methods for probabilistic programming in general, but it does contain a large number of statistical functions for common distributions as well as efficient random number generation. Efficient computation of these functions is key to developing a performant PPL.
+There are two principle approaches to the implementation of PPLs. \one~Graph-based, where a finite graph representing the variables and their relationships, over which efficient inference can take place, is generated from a program, e.g,~Infer.NET~\cite{wang2011using} or JAGS~\cite{plummer2004jags}. It has the benefit of being able to process high-dimensional data well as efficient computation graph frameworks can be leveraged, e.g.,~Edward~\cite{edward}, which uses TensorFlow~\cite{tensorflow} as a backend. However, it does restrict the types of models to those that can be represented by the underlying graph. \two~Trace-based, where execution traces corresponding to each run of a program with intermediate random variables taki a particular value, are reasoned over by inference algorithms to produce a posterior distribution~\cite{anglican-smc,mobus2018structure}. This can lead to greater expressiveness as we are not limited by the constraints of a graph, but inference is often slower as more general purpose algorithms must be used.
 
-I had experience with the core SML language, which aided in learning basic OCaml due to similarities in the languages, however I did have to learn the modules system. 1B Foundations of Data Science also gave me a basic understanding of Bayesian inference. I did not have experience with domain specific languages in OCaml, although the 1B compilers course did implement a compiler and interpreter in OCaml.
+Prior PPLs embedded in OCaml include IBAL~\cite{ibal} and HANSEI~\cite{kiselyov2009embedded}, and \pupil takes some inspiration from these particularly in implementation of efficient inference engines. A summary of several PPLs is given in Table \ref{tab:ppl-summ}.
 
-\subsection{Requirements}
+\section{\pupil, an OCaml PPL}
+\label{s:pupil}
 
-Before starting to write any code, I made sure to set out the features I aimed to implement for my DSL. The success criteria were:
+\pupil is shallowly embedded in the OCaml language, and makes use of features such as its strong type-system to ensure programs that compile will run, algebraic datatypes to represent probabilistic programs as trees, and pattern matching to simplify interpretation and transformation of these trees. \pupil builds on Owl, a scientific computing library written for OCaml~\cite{owl} containing functions for working with a wide variety of probability distributions, as well as to find their probability density function (pdf) and to sample efficiently from them, the functions required to perform inference.
 
-% TODO: which tense to use here - past, say "this met the success criteria as follows"
-\begin{itemize}
-\item \textbf{Language Features}: Since I have written an embedded DSL, a user of my PPL should be able to take advantage of all standard OCaml features in their models. I needed to make sure that this is the case, and features such as recursive or higher order functions will work.
-\item \textbf{Available distributions}: I aimed to make sure my PPL has at minimum the Bernoulli and normal distributions available as basic building blocks to build more complex probabilistic programs.
-\item \textbf{Correctness of inference}: I used the PPL developed on example problems to ensure correct results are produced. These results were compared to analytic solutions for simple problems.
-\item \textbf{Available Inference Algorithms}: I aimed to include at least one available inference algorithm. However, since different problems are more or less well suited to different general-purpose inference procedures, I wrote implementations for five separate algorithms.
-\item \textbf{Performance}: This is a quantitative measure, comparing programs written in my PPL to equivalent programs in other PPLs. I used the profiling tools spacetime and GProf to profile my OCaml code. Performing inference needed to be possible within a reasonable amount of time, even though the project does not have a significant focus on performance. I also benchmarked the performance with regards to scalability, so the performance is still reasonable as models are conditioned on more data.
-\end{itemize}
+Using a shallow embedding means we can use all of the features of OCaml as normal, including branching (if/then/else), loops, references, let bindings, (higher-order) functions, and recursion. This has the benefit of leveraging OCaml features such as type checking, as well as permitting library code to be included directly within models. It also allows for recursively defined models, which can be non-terminating (and therefore invalid) models. However, we can write functions which are \textit{stochastic recursive}~\cite{siegmund}, that is, functions which have a probability of termination that tends to 1 as the number of successive calls tends to infinity. This leads to functions which terminate their recursion non-deterministically. Any model which does not satisfy this will be considered an invalid model, though the halting problem unfortunately means this property cannot be enforced.
 
-\subsection{OCaml}
-I have chosen to use the OCaml language to implement my PPL. There are many features of OCaml which make it suitable for writing a DSL. Using OCaml, I can make sure that expressions in the DSL are well-typed, so that programs don't fail to run. OCaml's algebraic datatypes make it easy to represent probabilistic programs as trees, and pattern matching makes it easy to interpret and transform these trees. The module system also makes sure that certain types can be hidden from the user, which ensures only valid values are created.
+The shallow embedding results in the provision of two operations to OCaml: \emph{sample}, for taking a sample from a distribution whether primitive or another (sub-)model; and \emph{condition}, for conditioning on observations, defining how likely is observed data (called \emph{observe} or \emph{score} in other PPLs).
 
-\subsection{GADTs}
-The main data structure I use to represent distributions is a GADT - a generalised algebraic data type. GADTs are similar to ADTs (sum types), as they have a set of constructors, but these constructors can have their output types annotated with different return types. This makes GADTs more general than normal ADTs, whose return types are all the same. An example is a GADT to represent expressions, and the corresponding ADT:
+The problem of designing a PPL is then finding a way to model the nondeterminism in the sample operator and integrate the information from the condition operator to guide inference and the execution traces explored. Most universal PPLs use a feature that enables exploring subcomputations - the different execution traces. This can be done using continuation passing style (CPS) transformations, as in WebPPL and Church~\cite{mobus2018structure,goodman2012church}, or algebraic effects as in Pyro~\cite{bingham2019pyro}. In \pupil we model conditional distributions as monads~\cite{scibior2015practical}, and realise probabilistic programs as a GADT.
 
-% \begin{noindent}
-\begin{figure*}[!hbt]
-  \begin{minipage}{0.45\linewidth}
-    \ocamlcode[label=GADT]{code_snippets/gadt_prep.ml}
-  \end{minipage}
-  \begin{minipage}{0.45\linewidth}
-    \ocamlcode[label=ADT]{code_snippets/adt_prep.ml}
-  \end{minipage}
-  \captionof{listing}{Two ways to implement the type for a simple language - the GADT prevents bad expressions being accepted by the type checker}
-\end{figure*}
-% \end{noindent}
-
-With this GADT, booleans can't be combined with \texttt{Add}, and we can statically check that expressions will not fail to evaluate, which would not be possible with an ordinary ADT.
-
-Type inference for GADTs is undecidable, and so type inference often fails when pattern matching on GADTs, especially for recursive functions. I often need to annotate functions as being explicitly polymorphic using the syntax below.
-\[
-  \texttt{let f:}\overbrace{\texttt{'a.'a t -> 'a t}}^{\text{explicit for all 'a}}\texttt{= fun x -> ...}
-\]
 \subsection{Monads}
 Monads are a design pattern commonly used in functional programming languages.
 
-The key data structure I use to model probability distributions is a monad. A data type is a monad if it defines two operations, \texttt{return} and \texttt{bind}, and can be thought of as a type which `wrap' values. The return function takes a value and returns a monad wrapping that value. The bind function takes a monad and a function, and applies the function to the value wrapped inside the monad, and then re-wraps this value. The type must also satisfy a set of laws, which I omit here \cite{wadler1990comprehending}. Monads can be used to structure programs in a general way, and allow side effects to be described in types.
+The key data structure I use to model probability distributions is a monad. A data type is a monad if it defines two operations, \texttt{return} and \texttt{bind}, and can be thought of as a type which `wrap' values. The return function takes a value and returns a monad wrapping that value. The bind function takes a monad and a function, and applies the function to the value wrapped inside the monad, and then re-wraps this value. The type must also satisfy a set of laws, which I omit here~\cite{wadler1990comprehending}. Monads can be used to structure programs in a general way, and allow side effects to be described in types.
 
 \paragraph{Probability Monad} \label{sec:prep-monad}
-It has been shown that probability distributions form a monad, \cite{giry1982categorical, jones1989probabilistic}, and that they can be used to create distributions composed from other distributions \cite{ramsey2002stochastic}. In this case, \texttt{return x} represents a distribution with only one value (x) - known as a Dirac distribution. So \texttt{bind d f} is the main operator for composing distributions. Binding distributions together represents taking the output of one distribution (d) and using it in the body of the function (f). This can be thought of as taking a sample from d. However, it is important to note that calling bind will not directly produce a sample, but expose that structure to an interpreter (the inference engine) which can then decide what to do at that point.
+It has been shown that probability distributions form a monad,~\cite{giry1982categorical, jones1989probabilistic}, and that they can be used to create distributions composed from other distributions~\cite{ramsey2002stochastic}. In this case, \texttt{return x} represents a distribution with only one value (x) - known as a Dirac distribution. So \texttt{bind d f} is the main operator for composing distributions. Binding distributions together represents taking the output of one distribution (d) and using it in the body of the function (f). This can be thought of as taking a sample from d. However, it is important to note that calling bind will not directly produce a sample, but expose that structure to an interpreter (the inference engine) which can then decide what to do at that point.
 
 \paragraph{Custom let operators}
 OCaml 4.08 allows me to define definitions for custom let operators. This is used to provide syntactic sugar for working with monads, and is similar to do-notation in Haskell. The reference documentation \footnote{\url{http://caml.inria.fr/pub/distrib/ocaml-4.08/ocaml-4.08-refman.html\#s\%3Abinding-operators}} specifies that a monad should provide a module which implements the (let*) and (and*) operators. The (let*) operator is the standard bind function - it takes the identifier bound to as the first argument to the function in bind. The (and*) operator is the product operation, it takes two monads and returns the monad product of the arguments - it has signature \texttt{'a m -> 'b m -> ('a * 'b) m}, where m is the monad type. An example, using the Option monad is given below to show the transformation that takes place. This feature allows the user to not have to use the bind (often aliased by >>=) or product functions explicitly, and offers a more intuitive syntax.
@@ -1201,4 +1180,5 @@ One of my initial goals was for my PPL to be able to represent as many types of 
   \bibliography{owl-ppl.bib}
 }
 
+\appendix
 \end{document}
