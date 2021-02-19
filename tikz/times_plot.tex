@@ -50,16 +50,6 @@
     title={Title}
     ]
 
-    \nextgroupplot[title=Biased Coin, legend to name=none]
-    \coordinate (c1) at (rel axis cs:0,1);
-    \perfgrapht{data/perf/time/times_coin.csv}
-
-    \nextgroupplot[title=Linear Regression, legend to name=none]
-    \perfgrapht{data/perf/time/times_linreg.csv}
-
-    \nextgroupplot[title=Hidden Markov Model, legend to name=none]
-    \perfgrapht{data/perf/time/times_hmm.csv}
-
     \nextgroupplot[
     title=Sprinkler,
     legend style={
@@ -71,8 +61,18 @@
     },
     legend to name=none
     ]
-    \coordinate (c2) at (rel axis cs:1,1);
+    \coordinate (c1) at (rel axis cs:0,1);
     \perfgrapht{data/perf/time/times_sprinkler.csv}
+
+    \nextgroupplot[title=Biased Coin, legend to name=none]
+    \perfgrapht{data/perf/time/times_coin.csv}
+
+    \nextgroupplot[title=Hidden Markov Model, legend to name=none]
+    \perfgrapht{data/perf/time/times_hmm.csv}
+
+    \nextgroupplot[title=Linear Regression, legend to name=none]
+    \coordinate (c2) at (rel axis cs:1,1);
+    \perfgrapht{data/perf/time/times_linreg.csv}
   \end{groupplot}
   % \coordinate (c3) at ($(c1)!.5!(c2)$);
   % \node[below] at (c3 |- current bounding box.south)
