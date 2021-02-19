@@ -80,9 +80,9 @@
 %% The "title" command has an optional parameter,
 %% allowing the author to define a "short title" to be used in page headers.
 \title[
-  \pupil, an Efficient Trace-Based, Type-Safe Probabilistic Programming Language
+  \pupil, an Efficient Trace-Based Type-Safe Probabilistic Programming Language
 ]{
-  \pupil, an Efficient Trace-Based, Type-Safe \\
+  \pupil, an Efficient Trace-Based Type-Safe \\
   Probabilistic Programming Language
 }
 
@@ -171,13 +171,13 @@
 \section{Introduction}
 \label{s:introduction}
 
-Creating statistical models and performing inference on these models is key to data science. Such modelling begins by formulating a prior belief over some parameters ($x$), the generative model ($p(x)$), and a set of conditions ($p(y|x)$) which specify the likelihood of observed data given the parameters. The goal is then to find the posterior, the (inferred) distribution over the parameters given the data we observe ($p(x|y)$), but  this is generally analytically intractable so approximate methods are used. Unfortunately,  maintaining a clear separation between the approximation (or inference) method and the model itself is difficult, which reduces the re-usability of methods and the robustness of implementations, making errors more likely and tying  performance optimisations to particular models rather than allowing them to be generalised across many models using the same inference method.
+Creating statistical models and performing inference on these models is key to data science. Such modelling begins by formulating a prior belief ($p(x)$) over some parameters ($x$) and the model ($p(y|x)$) which specifies the likelihood of observed data ($y$) given the parameters ($x$). The goal is then to find the posterior, the (inferred) distribution over the parameters given the data we observe ($p(x|y)$), but this is generally analytically intractable so approximate methods are used. Unfortunately, maintaining a clear separation between the approximation (or inference) method and the model itself is difficult. This reduces the re-usability of methods and the robustness of implementations, makes errors more likely, and ties performance optimisations to particular models rather than allowing them to be generalised across many models using the same inference method.
 
 A probabilistic programming language (PPL) is a language for creating complex models by composing simpler models and probability distributions, separating inference from model specification, allowing inference to be performed automatically~\cite{gordon2014probabilistic}. This has numerous advantages: inference code is written and optimised once, independent of model; many different inference algorithms can be provided, suitable for different problems; and models can be written by domain experts, without concern for inference~\s{s:related}.
 
 PPLs can be standalone languages or embedded into another language, giving access to the full power of the host language, making it easier to combine models. We present \emph{\pupil}, a shallow embedded PPL in the OCaml language that leverages OCaml's expressive type system and efficient native code generation. \pupil can represent a wide variety of models, not limited to finite graphical models or discrete distributions, and provides several inference procedures. Distributions are represented using a Generalised Algebraic Data Type (GADT) as a monad, allowing distributions to be combined type-safely to build models~\s{s:pupil}.
 
-We show that \pupil's inference algorithms are correct using statistical tests on simple programs that can be solved analytically. We compare \pupil's performance to that of two well-known alternative PPLs, Anglican and WebPPL, We find that \pupil outperforms WebPPL in inference speed, and is commensurate with Anglican. In both cases, \pupil exhibits significantly lower memory usage making it particularly suitable for low-resource availability environments such as edge computing~\s{s:evaluation}.
+We show that \pupil's inference algorithms are correct using statistical tests on simple programs that can be solved analytically. We compare \pupil's performance to that of two well-known alternative PPLs, Anglican and WebPPL. We find that \pupil outperforms WebPPL in inference speed, and is commensurate with Anglican. In both cases, \pupil exhibits significantly lower memory usage making it particularly suitable for low-resource availability environments such as edge computing~\s{s:evaluation}.
 
 The contributions of this paper are to present the design of a type-safe PPL embedded in the OCaml language, and to show that this PPL can match existing PPLs for speed while having significantly reduced memory footprint.
 
@@ -236,14 +236,14 @@ The contributions of this paper are to present the design of a type-safe PPL emb
     \bottomrule
   \end{tabular}
   \caption{\label{tab:ppl-summ}
-    A selection of current PPLs and their significant attributes.}
+    A selection of current PPLs and their significant attributes (are they universal, do they support continuous distributions).}
 \end{table}
 
 There are many examples of PPLs, both as DSLs embedded into other languages (including OCaml) and as standalone compilers. Standalone languages have their own syntax and compiler, so can be fine tuned to the task of inference, but often lack features since they have to be built from scratch. Embedded languages can utilise facilities in their host language, such as type checking, compilers or libraries, as well as allowing programs to be integrated into existing systems easily, but they must work around the syntax and semantics of the host language. Some early PPLs, such as BUGS~\cite{gilks1994bugs} or JAGS~\cite{plummer2004jags}, limited the types of models representable in the language to finite graphical models, where the model could be expressed as a static graph of random variables and their relationships.
 
 Many languages restrict the set of allowed models in order to use more efficient inference algorithms which can take advantage of the restricted structure of models. Universal languages can represent any model, but suffer from less predictable inference procedures since many properties of the model (such as the number of random variables) are not available at compile-time. Restricting the types of possible models can lead to efficient implementations of inference algorithms. Languages such as STAN~\cite{carpenter2017stan} or Infer.NET~\cite{wang2011using} exploit this, and forbid, e.g.,~unbounded recursion when defining models.
 
-PPLs which can express models that have an unlimited number of random variables (and so do not compile to a static graph) are known as `universal'~\cite{borgstrom2016lambda}, and include Church~\cite{goodman2012church}, WebPPL~\cite{mobus2018structure} and Anglican~\cite{anglican-smc}. These tend to be slower at inference due to the need to support a greater range of models. Some PPLs restrict the types of distribution allowed, for example HANSEI~\cite{kiselyov2009embedded} and IBAL~\cite{ibal} only allow discrete distributions.
+PPLs which can express models that have an unlimited number of random variables (and so do not compile to a static graph) are known as `universal'~\cite{borgstrom2016lambda}, and include Church~\cite{goodman2012church}, WebPPL~\cite{mobus2018structure} and Anglican~\cite{anglican-smc}. These tend to be slower at inference due to the need to support a greater range of models. Some PPLs restrict the types of distribution allowed, for example HANSEI~\cite{kiselyov2009embedded} and IBAL~\cite{ibal} only allow discrete distributions, while others also allow continuous distributions..
 
 There are two principle approaches to the implementation of PPLs. \one~Graph-based, where a finite graph representing the variables and their relationships, over which efficient inference can take place, is generated from a program, e.g,~Infer.NET~\cite{wang2011using} or JAGS~\cite{plummer2004jags}. It has the benefit of being able to process high-dimensional data well as efficient computation graph frameworks can be leveraged, e.g.,~Edward~\cite{edward}, which uses TensorFlow~\cite{tensorflow} as a backend. However, it does restrict the types of models to those that can be represented by the underlying graph. \two~Trace-based, where execution traces corresponding to each run of a program with intermediate random variables taking a particular value, are reasoned over by inference algorithms to produce a posterior distribution~\cite{anglican-smc,mobus2018structure}. This can lead to greater expressiveness as we are not limited by the constraints of a graph, but inference is often slower as more general purpose algorithms must be used.
 
@@ -272,17 +272,17 @@ Many underlying data structure can be used to represent distributions as monads.
   \centering
   \begin{subfigure}[t]{\columnwidth}
     \ocamlcode{code_snippets/adt_prep.ml}
-    \caption{\label{lst:adt}The type of a simple language using an ADT.}
+    \caption{\label{lst:adt}Using an ADT allows invalid values to be represented.}
   \end{subfigure}
   \quad\\
   \begin{subfigure}[t]{\columnwidth}
     \ocamlcode{code_snippets/gadt_prep.ml}
-    \caption{\label{lst:gadteg}The type of a simple language using a GADT.}
+    \caption{\label{lst:gadteg}Using a GADT, the type checker can prevent the invalid value.}
   \end{subfigure}
-  \caption{\label{lst:adtgadt}Implementations of the type for a simple language using ADTs and GADTS. The GADT allows the type checker to refuse bad expressions where the ADT cannot.}
+  \caption{\label{lst:adtgadt}Implementations of the type for a simple language using ADTs and GADTS.}
 \end{figure}
 
-The main data structure I use to represent distributions is a Generalised Algebraic Data Type (GADT). As with ADTs (sum types) they have a set of constructors, but they can have their output types annotated with different return types, making them more general than ADTs whose return types are all the same. Figure~\ref{lst:adtgadt} shows the type for  a simple language comprising floats, booleans, and pairs of floats can be represented using ADTs (Figure~\ref{lst:adt}) and GADTs (Figure~\ref{lst:gadteg}). In the former case, the type checker is unable to prevent construction of invalid values such as \texttt{Add(F 0.5, B true)} because all of \texttt{F 0.5}, \texttt{B true} and \texttt{Add(..., ...)} are typed as \texttt{'a expr}. In the latter, the type checker knows the two values in the \texttt{Add} must be \texttt{float expr} and the result is a \texttt{float expr}.
+The main data structure we use to represent distributions is a Generalised Algebraic Data Type (GADT). As with ADTs (sum types) they have a set of constructors, but they can have their output types annotated with different return types, making them more general than ADTs whose return types are all the same. Figure~\ref{lst:adtgadt} shows the type for  a simple language comprising floats, booleans, and pairs of floats can be represented using ADTs (Figure~\ref{lst:adt}) and GADTs (Figure~\ref{lst:gadteg}). In the former case, the type checker is unable to prevent construction of invalid values such as \texttt{Add(F 0.5, B true)} because all of \texttt{F 0.5}, \texttt{B true} and \texttt{Add(..., ...)} are typed as \texttt{'a expr}. In the latter, the type checker knows the two values in the \texttt{Add} must be \texttt{float expr} and the result is a \texttt{float expr}.
 
 GADTs are often used to implement interpreters in functional languages, and have been used to represent probabilistic models~\cite{scibior2015practical} that can then be `interpreted' by a sampler or inference algorithm by traversing the model, ignoring conditionals to enable forward sampling from the prior. Inference is provided for by transforming conditional distributions to remove conditional statements allowing sampling to be performed as normal, or by generating an empirical distribution that can be sampled from similarly.
 
@@ -292,7 +292,7 @@ GADTs are often used to implement interpreters in functional languages, and have
   \caption{\label{lst:gadt}Representing a probabilistic model using a GADT}
 \end{figure}
 
-Figure~\ref{lst:gadt} shows the GADT variants and the monad functions that construct them: \emph{Return} represents a distribution with one value; \emph{Bind} contains a distribution and a function representing the application of the function to the output from that distribution (also bound to \emph{let*}); \emph{Independent} represents models with independent sub-parts, such as when drawing samples from many independently distributed variables, and can be used to parallelise models (also bound to \emph{and*}); \emph{Primitive} represents distributions of a type for which can find the exact pdf/cdf, while the general \emph{dist} type can only be sampled; and \emph{Conditional} assigns scores (likelihoods) to execution traces via a function that takes an element produced by a model and returns a score for the corresponding trace. An important feature of this type is that it is polymorphic: distributions can be defined over any type, including arbitary ADTs or even other distributions.
+Figure~\ref{lst:gadt} shows the GADT variants and the monad functions that construct them: \emph{Return} represents a distribution with one value; \emph{Bind} contains a distribution and a function representing the application of the function to the output from that distribution (also bound to \emph{let*}); \emph{Independent} represents models with independent sub-parts, such as when drawing samples from many independently distributed variables, and can be used to parallelise models (also bound to \emph{and*}); the \emph{Primitive} variant represents distributions where there is an exact pdf/cdf, while the more general \emph{dist} type represents distributions from which we can only sample; and \emph{Conditional} assigns scores (likelihoods) to execution traces via a function that takes an element produced by a model and returns a score for the corresponding trace. An important feature of this type is that it is polymorphic: distributions can be defined over any type, including arbitary ADTs or even other distributions.
 
 \subsection{Representing Distributions}
 \pupil uses three different data structures to represent the different types of distribution: \one~\emph{input distributions}, primitive distributions used to build models, \two\emph{output distributions}, empirical distributions built from a set of samples from a posterior, and \three~\emph{general probabilistic models}, composed primitives conditioned on data.
@@ -304,7 +304,7 @@ Complex models are built by composing distributions about which we have extra in
 Bayesian inference produces probability distributions over the variables of interest, ideally the exact posterior distribution -- but approximate inference only allows us to create functions to sample from this posterior. For discrete distributions, we use a \emph{Core.Map}\footnote{\url{https://ocaml.janestreet.com/ocaml-core/latest/doc/base/Base/Map/index.html}}, with the values that the distribution can take and the number of samples of each value as the keys and values of the map. For continuous distributions we use a dynamically resizing array so that adding each sample is $O(1)$ amortised, with statistics calculated using Owl's functions that operate on arrays.
 
 \paragraph{General Probabilistic Models}
-By including the \emph{Conditional} variant, the above GADT can be used to describe general models by incorporating observed data into our models and performing inference. This variant represents observations by assigning scores to traces using a function that takes an element and returns a score representing how likely the current trace is given the value passed to the function. Different inference algorithms will use this information to produce a distribution over all possible traces, and different forms of conditioning are provided: \one~\emph{hard}, which scores the model 1 or 0 if an observation is true or false,  representing how likely it is for the current trace to occur and allowing certain variables or outcomes in a model to be constrained; \two~\emph{soft}, using the distribution's pdf to determine the likelihood of the observation in the model; and \three~a \emph{constant}, used in branching statements, where a score is assigned typically based on some deterministic) condition.
+By including the \emph{Conditional} variant, the above GADT can be used to describe general models by incorporating observed data into our models and performing inference. This variant represents observations by assigning scores to traces using a function that takes an element and returns a score representing how likely the current trace is given the value passed to the function. Different inference algorithms will use this information to produce a distribution over all possible traces, and different forms of conditioning are provided: \one~\emph{hard}, which scores the model 1 or 0 if an observation is true or false,  representing how likely it is for the current trace to occur and allowing certain variables or outcomes in a model to be constrained; \two~\emph{soft}, using the distribution's pdf to determine the likelihood of the observation in the model; and \three~a \emph{constant}, used in branching statements, where a score is assigned typically based on some deterministic condition.
 
 PPLs allow us to create these models as programs in code. Generative models are built by taking samples from probability distributions, so PPLs need some way of modelling this non-determinism. Being able to condition the values of variables on data is the other key part of PPLs, since we are interested in the posterior, which is conditional on the data. Without conditioning, we can run a program forwards, which generates samples from the model we write (the prior). By taking into account conditioning, we can infer the distribution of the input parameters based on the data we observe and sample from this distribution.
 
@@ -394,7 +394,7 @@ $O = \big(\begin{smallmatrix}
 \end{smallmatrix}\big)$.
 
 \paragraph{Linear Regression}
-Finally, this example uses multiple 2-D data points to infer a continuous (straight line) distribution$ y=\beta_1 x_1 + \beta_0 + \epsilon$ where  $\beta_i$ are the terms to be determined, and $\epsilon$ represents random error. A frequentist approach minimises the sum of least squares between the known values and the predicted outputs to find a single best set of values for the parameters. In Bayesian linear regression, we also use prior distributions to augment the data:   $y \sim N(\beta_0 + \beta_1 x_1 + \epsilon, 1.)$ as the likelihood model and $\beta_0 \sim N(0,1)$ and $\beta_1 \sim N(0,1)$ the priors over the slope and $y$-intercept.
+Finally, this example uses multiple 2-D data points to infer a continuous (straight line) distribution$ y=\beta_1 x_1 + \beta_0 + \epsilon$ where  $\beta_i$ are the terms to be determined, and $\epsilon$ represents random error. In Bayesian linear regression, we also use prior distributions to augment the data:   $y \sim N(\beta_0 + \beta_1 x_1 + \epsilon, 1.)$ as the likelihood model and $\beta_0 \sim N(0,1)$ and $\beta_1 \sim N(0,1)$ the priors over the slope and $y$-intercept.
 
 As an example, Figure~\ref{lst:linreg} compares implementation of the linear regression model in the three languages used for evaluation: \pupil, Anglican (embedded in Clojure) and WebPPL (embedded in JavaScript).
 
@@ -409,12 +409,13 @@ All tests are carried out on a single core of an Intel\textsuperscript{(R)} Core
 
 It is also important to consider running time of inference as more data is used, as  models conditioned on more data should  give more accurate results. We evaluated  the linear regression model, increasing the length of the array used as input, and see that running time increases linearly with the size of data. Figure~\ref{fig:time-datasize} shows all inference functions running in time linear to the size of the input, albeit with substantial variation in constant factors, e.g.,~Sequential Monte Carlo has a much steeper gradient than Metropolis-Hastings.
 
-\begin{figure*}
+\begin{figure}
   \centering
   \input{tikz/kl_plot.tex}
   \caption{\label{fig:kl}
-    Plot of KL-divergence with increasing number of samples for different models and inference procedures, averaged over 20 runs. We use log-log axes  due to large  variation between  the curves, which do map to straight lines on a linear axes.}
-\end{figure*}
+    Plot of KL-divergence with increasing number of samples for different models and inference procedures, averaged over 20 runs. % We use log-log axes  due to large  variation between  the curves, which do map to straight lines on a linear axes.
+  }
+\end{figure}
 
 Figure~\ref{fig:kl} shows the trade-off between speed and accuracy: the particle filter is slower than rejection sampling here but produces more accurate posterior distributions. For each inference procedure, we can see that the KL-divergence for each model generally decreases as we take more samples. Rejection sampling is consistently the worst performing inference procedure, with particle based methods such as the particle filter or importance sampling generating more accurate distributions. These plots have all been smoothed by taking a moving average in order to reduce the impact of noise.
 

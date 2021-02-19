@@ -30,8 +30,6 @@
       legend columns=2,
       fill=none,
       draw=none,
-      anchor=center,
-      align=left,
     },
     legend to name=leg1]
     \coordinate (c1) at (rel axis cs:0,1);
@@ -52,7 +50,7 @@
     \addplot [name path=lower2,draw=none,forget plot] table[x index=0, y index=1, col sep=comma ,y expr=\thisrowno{1}-\thisrowno{2}] {data/perf/by_datasize/linreg_by_data_length_smc.csv};
     \addplot [fill=brown!25, fill opacity=0.75,forget plot] fill between[of=upper2 and lower2];
     \addplot [brown,mark=*] table [x index=0, y index=1, col sep=comma] {data/perf/by_datasize/linreg_by_data_length_smc.csv};
-    \addlegendentryexpanded{Particle Filter}
+    \addlegendentryexpanded{Sequential Monte Carlo}
     %
     \addplot [name path=upper3,draw=none,forget plot] table[x index=0, y index=1, col sep=comma, y expr=\thisrowno{1}+\thisrowno{2}] {data/perf/by_datasize/linreg_by_data_length_importance.csv};
     \addplot [name path=lower3,draw=none,forget plot] table[x index=0, y index=1, col sep=comma ,y expr=\thisrowno{1}-\thisrowno{2}] {data/perf/by_datasize/linreg_by_data_length_importance.csv};
@@ -70,7 +68,7 @@
     \addplot [name path=lower3,draw=none,forget plot] table[x index=0, y index=1, col sep=comma ,y expr=\thisrowno{1}-\thisrowno{2}] {data/perf/by_datasize/linreg_by_data_length_pimh.csv};
     \addplot [fill=teal!50, fill opacity=0.5,forget plot] fill between[of=upper3 and lower3];
     \addplot [teal,mark=*] table [x index=0, y index=1, col sep=comma] {data/perf/by_datasize/linreg_by_data_length_pimh.csv};
-    \addlegendentryexpanded{Particle-Indepependent MH}
+    \addlegendentryexpanded{Particle-Independent MH}
 
     % \nextgroupplot[title=Mixture Model,
     % legend style={at={($(0,0)+(2cm,2cm)$)}, legend columns=4},
