@@ -4,14 +4,10 @@ var linreg_model = function () {
   var model = function () {
     var m = gaussian(0, 2);
     var c = gaussian(0, 2);
-    var f = function (x) {
-      return m * x + c;
-    };
+    var f = function (x) { return m * x + c; };
     map2(function (x, y) {
-      factor(Gaussian({
-            mu: f(x),
-            sigma: 1,}).score(y));
-      }, xs, ys);
+      factor(Gaussian({mu: f(x), sigma: 1,}).score(y));
+    }, xs, ys);
     return m;
   };
 };

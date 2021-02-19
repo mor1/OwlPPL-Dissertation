@@ -25,7 +25,7 @@
     no markers,
     every axis plot/.append style={thick},
     width=\columnwidth,
-    height=5cm,
+    height=4cm,
     ylabel={KL divergence},
     xlabel={Number of samples},
     ymode=log,
@@ -40,8 +40,7 @@
     \addlegendentry{pimh}
 
     \nextgroupplot[title=Sprinkler model,
-    legend style={at={($(0,0)$)}, legend columns=3},
-    legend to name=leg1]
+    legend style={at={($(0,0)$)}, legend columns=3}, legend to name=leg1]
     \coordinate (c2) at (rel axis cs:1,1);
     \addplot table [x index=0, y index=1, col sep=comma] {data/kl/rejection_sprinkler.csv};
     \addlegendentry{Rejection Sampling}
