@@ -43,9 +43,9 @@
 
 \usepackage[outputdir=out, cache=false]{minted}
 \setminted{fontsize=\footnotesize}
-\newmintedfile[ocamlcode]{ocaml}{frame=single,framesep=7pt}
-\newmintedfile[jscode]{js}{frame=single,framesep=7pt}
-\newmintedfile[clojurecode]{clj}{frame=single,framesep=7pt}
+\newmintedfile[ocamlcode]{ocaml}{frame=none,framesep=7pt}
+\newmintedfile[jscode]{js}{frame=none,framesep=7pt}
+\newmintedfile[clojurecode]{clj}{frame=none,framesep=7pt}
 \newminted[ocamlcode-in]{ocaml}{frame=single,framesep=7pt,autogobble}
 
 \usepackage{xpatch,letltxmacro}
@@ -70,6 +70,8 @@
 
 \newcommand{\pupil}{Pupil\xspace}
 
+\usepackage{float}
+
 %%
 %% end of the preamble, start of the body of the document source.
 \begin{document}
@@ -77,7 +79,9 @@
 %%
 %% The "title" command has an optional parameter,
 %% allowing the author to define a "short title" to be used in page headers.
-\title{
+\title[
+  \pupil, an Efficient Trace-Based, Type-Safe Probabilistic Programming Language
+]{
   \pupil, an Efficient Trace-Based, Type-Safe \\
   Probabilistic Programming Language
 }
@@ -857,10 +861,8 @@ We have presented the design and evaluation of \pupil, a universal probabilistic
 % \end{acks}
 
 {
-  \clearpage
   \bibliographystyle{ACM-Reference-Format}
   \bibliography{owl-ppl.bib}
 }
 
-\appendix
 \end{document}
