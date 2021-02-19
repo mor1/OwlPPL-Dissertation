@@ -72,6 +72,8 @@
 
 \usepackage{float}
 
+\urlstyle{sf}
+
 %%
 %% end of the preamble, start of the body of the document source.
 \begin{document}
@@ -181,19 +183,21 @@ We show that \pupil's inference algorithms are correct using statistical tests o
 
 The contributions of this paper are to present the design of a type-safe PPL embedded in the OCaml language, and to show that this PPL can match existing PPLs for speed while having significantly reduced memory footprint.
 
+\newcommand*\rot{\rotatebox{45}}
+
 \section{Related Work}
 \label{s:related}
 
 \begin{table}
   \centering
   \begin{tabular}{ l l c c l }
-    \toprule
     \textbf{PPL}
     & \textbf{Host}
-    & \textbf{Universal?}
-    & \textbf{Continuous?}
-    & \textbf{Year} \\
-    \midrule
+    & \rot{\textbf{Universal?}}
+    & \rot{\textbf{Continuous?}}
+    & \textbf{Year}
+    \\
+    \toprule
 
     BUGS~\cite{gilks1994bugs}
     & --- & \xmark & \cmark & 1994 \\
@@ -236,7 +240,7 @@ The contributions of this paper are to present the design of a type-safe PPL emb
     \bottomrule
   \end{tabular}
   \caption{\label{tab:ppl-summ}
-    A selection of current PPLs and their significant attributes (are they universal, do they support continuous distributions).}
+    A selection of current PPLs and whether they are universal and support continuous distributions.}
 \end{table}
 
 There are many examples of PPLs, both as DSLs embedded into other languages (including OCaml) and as standalone compilers. Standalone languages have their own syntax and compiler, so can be fine tuned to the task of inference, but often lack features since they have to be built from scratch. Embedded languages can utilise facilities in their host language, such as type checking, compilers or libraries, as well as allowing programs to be integrated into existing systems easily, but they must work around the syntax and semantics of the host language. Some early PPLs, such as BUGS~\cite{gilks1994bugs} or JAGS~\cite{plummer2004jags}, limited the types of models representable in the language to finite graphical models, where the model could be expressed as a static graph of random variables and their relationships.
@@ -258,7 +262,7 @@ Two operations provide the shallow embedding: \one~\emph{sample}, for taking a s
 
 \subsection{Monads}
 
-A design pattern commonly used in functional programming languages, \emph{monads} ``wrap'' values by defining two operations, \one~\emph{return}, taking a value and returning a monad, and \two~\emph{bind}, taking a monad and a function, and applying the function to the value wrapped inside the monad, returning the wrapped result.\footnote{Monads must also satisfy a set of laws, omitted here for space~\cite{wadler1990comprehending}.} Monads can be useful in structuring programs, allowing side effects to be captured in types.
+A design pattern commonly used in functional programming languages, \emph{monads} ``wrap'' values by defining two operations, \one~\emph{return}, taking a value and returning a monad, and \two~\emph{bind}, taking a monad and a function, and applying the function to the value wrapped inside the monad, returning the wrapped result.\footnote{Monads must also satisfy a set of laws, omitted here for space~\cite{wadler1990comprehending}.} Monads help structuring programs, allowing types to capture side effects.
 
 It has been shown that probability distributions form a monad~\cite{giry1982categorical, jones1989probabilistic}, and can be used to create distributions composed from other distributions~\cite{ramsey2002stochastic}. In this case, \emph{return x} represents a distribution with only one value (\emph{x}, a Dirac distribution) while \emph{bind d f} composes distributions by taking the output of one distribution (\emph{d}) and using it in the body of the function (\emph{f}). Note that calling \emph{bind} does not produce a sample but exposes the structure to an interpreter (the inference engine) which can subsequently decide what to do.
 
@@ -266,7 +270,7 @@ Monads also allow use of the extended \emph{let} operators introduced in OCaml 4
 
 \subsection{GADTs}
 
-Many underlying data structure can be used to represent distributions as monads. A simple example is a list of pairs representing a set of values and their corresponding probabilities, a natural way to represent discrete distributions~\cite{erwig}. However, this cannot be used to represent continuous distributions and inference is not efficient as no information from the model (e.g.,~how random variables are combined or from what distributions they came) is encoded in this representation.
+Many underlying data structure can be used to represent distributions as monads. A simple example is a list of pairs representing a set of values and their corresponding probabilities, a natural way to represent discrete distributions~\cite{erwig}. However, this cannot be used to represent continuous distributions and inference is not efficient as model information such as how random variables are combined or from what distributions they came is not encoded.
 
 \begin{figure}
   \centering
@@ -295,13 +299,13 @@ GADTs are often used to implement interpreters in functional languages, and have
 Figure~\ref{lst:gadt} shows the GADT variants and the monad functions that construct them: \emph{Return} represents a distribution with one value; \emph{Bind} contains a distribution and a function representing the application of the function to the output from that distribution (also bound to \emph{let*}); \emph{Independent} represents models with independent sub-parts, such as when drawing samples from many independently distributed variables, and can be used to parallelise models (also bound to \emph{and*}); the \emph{Primitive} variant represents distributions where there is an exact pdf/cdf, while the more general \emph{dist} type represents distributions from which we can only sample; and \emph{Conditional} assigns scores (likelihoods) to execution traces via a function that takes an element produced by a model and returns a score for the corresponding trace. An important feature of this type is that it is polymorphic: distributions can be defined over any type, including arbitary ADTs or even other distributions.
 
 \subsection{Representing Distributions}
-\pupil uses three different data structures to represent the different types of distribution: \one~\emph{input distributions}, primitive distributions used to build models, \two\emph{output distributions}, empirical distributions built from a set of samples from a posterior, and \three~\emph{general probabilistic models}, composed primitives conditioned on data.
+\pupil uses three different data structures to represent the different types of distribution: \one~\emph{input distributions}, primitive distributions used to build models, \two~\emph{output distributions}, empirical distributions built from a set of samples from a posterior, and \three~\emph{general probabilistic models}, composed primitives conditioned on data.
 
 \paragraph{Input Distributions}
 Complex models are built by composing distributions about which we have extra information such as exact equations and the ability to sample directly. Such primitive distributions will have operations such as \emph{sample}, \emph{pdf}, \emph{cdf} defined, giving the standard properties of distributions, used to perform inference. \pupil also allows users to define their own primitive distributions by simply providing the necessary set of operations.
 
 \paragraph{Output Distributions}
-Bayesian inference produces probability distributions over the variables of interest, ideally the exact posterior distribution -- but approximate inference only allows us to create functions to sample from this posterior. For discrete distributions, we use a \emph{Core.Map}\footnote{\url{https://ocaml.janestreet.com/ocaml-core/latest/doc/base/Base/Map/index.html}}, with the values that the distribution can take and the number of samples of each value as the keys and values of the map. For continuous distributions we use a dynamically resizing array so that adding each sample is $O(1)$ amortised, with statistics calculated using Owl's functions that operate on arrays.
+Bayesian inference produces probability distributions over the variables of interest, ideally the exact posterior distribution -- but approximate inference only allows us to create functions to sample from this posterior. For discrete distributions, we use a \emph{Core.Map},\footnote{\url{https://ocaml.janestreet.com/ocaml-core/latest/doc/base/Base/Map/index.html}} with the values that the distribution can take and the number of samples of each value as the keys and values of the map. For continuous distributions we use a dynamically resizing array so that adding each sample is $O(1)$ amortised, with statistics calculated using Owl's functions that operate on arrays.
 
 \paragraph{General Probabilistic Models}
 By including the \emph{Conditional} variant, the above GADT can be used to describe general models by incorporating observed data into our models and performing inference. This variant represents observations by assigning scores to traces using a function that takes an element and returns a score representing how likely the current trace is given the value passed to the function. Different inference algorithms will use this information to produce a distribution over all possible traces, and different forms of conditioning are provided: \one~\emph{hard}, which scores the model 1 or 0 if an observation is true or false,  representing how likely it is for the current trace to occur and allowing certain variables or outcomes in a model to be constrained; \two~\emph{soft}, using the distribution's pdf to determine the likelihood of the observation in the model; and \three~a \emph{constant}, used in branching statements, where a score is assigned typically based on some deterministic condition.
@@ -341,7 +345,7 @@ We can also take into account the conditionals, and produce weighted samples, wi
     \caption{\label{fig:mem-perf}
       Memory usage.}
   \end{subfigure}
-  \caption{\pupil performance on different models, taking 10,000 samples from the posterior and averaging over 20 runs. Results shown for Metropolis-Hastings (\emph{mh}), Bootstrap Particle Filter (\emph{smc}), and Rejection Sampling (\emph{rej}). Error bars show the 95\% confidence interval. }
+  \caption{\pupil performance on different models, taking 10,000 samples from the posterior and averaging over 20 runs. Results shown for Metropolis-Hastings (\emph{mh}), Bootstrap Particle Filter (also known as Sequential Monte Carlo, \emph{smc}), and Rejection Sampling (\emph{rej}). Error bars show the 95\% confidence interval. }
 \end{figure*}
 
 
@@ -355,10 +359,10 @@ The simplest but usually computationally intractable (due to the normalising con
 As exact inference is too difficult in practice, \emph{Monte Carlo} methods~\cite{monte-carlo} are often used, relying on repeated sampling to infer distribution properties. One such is \emph{Rejection Sampling} which simply takes samples from a `proposal' distribution that {\bf can} be sampled from, accepting or rejecting them based on the pdf of the proposal distribution. It can be shown that samples taken using this method converge to the required distribution~\cite{flury1990acceptance} but it is naive, running an entire trace even if the first condition dropped the score below the threshold. \pupil slightly optimises by short-circuiting this, rejecting as soon as the trace goes below the threshold. Nonetheless, if conditions make most execution traces very unlikely, it will take a very large number of samples to have enough (or any) accepted samples.
 
 \paragraph{Metropolis-Hastings}
-Monte Carlo Markov Chains (MCMC) methods involve constructing a Markov chain with a stationary distribution equal to the posterior distribution. A Markov chain is a statistical model consisting of a sequence of events, where the probability of any event depends only on the previous event. The stationary distribution is the distribution over successive states to which the chain converges (if it converges). \emph{Metropolis Hastings} is an MCMC algorithm used to find a Markov chain with the stationary distribution equal to the target distribution, here the posterior. \pupil implements the Independent Metropolis Hastings (IMH) algorithm.
+Monte Carlo Markov Chains (MCMC) methods involve constructing a Markov chain with a stationary distribution equal to the posterior distribution. A Markov chain is a statistical model consisting of a sequence of events, where the probability of any event depends only on the previous event. The stationary distribution is the distribution over successive states to which the chain converges (if it converges). \emph{Metropolis Hastings} is an MCMC algorithm used to find a Markov chain with stationary distribution equal to the target distribution, here the posterior. \pupil implements the Independent Metropolis Hastings (IMH) algorithm.
 
 \paragraph{Sequential Monte Carlo}
-Large numbers of weighted samples are used to represent a posterior distribution in \emph{Sequential Monte Carlo} (SMC) methods; the samples are sometimes termed \emph{particles} and SMC methods known as \emph{Particle Filters.} A particle is a value paired with a non-normalised weight representing the likelihood of that value in the distribution. These particles are updated when data is observed and re-sampled from in order to converge the set of particles to the posterior. The simplest SMC algorithms are \emph{Particle Filters}~\cite{particlefilter}, which simply resample particles on encountering new data, sequentially updating the weights of the particles as we observe condition statements (i.e.~data) based on how likely this data is deemed to be.
+Large numbers of weighted samples are used to represent a posterior distribution in \emph{Sequential Monte Carlo} (SMC) methods; the samples are sometimes termed \emph{particles} and SMC methods known as \emph{Particle Filters}. A particle is a value paired with a non-normalised weight representing the likelihood of that value in the distribution. These particles are updated when data is observed and re-sampled from in order to converge the set of particles to the posterior. The simplest SMC algorithms are \emph{Particle Filters}~\cite{particlefilter}, which resample particles on encountering new data, sequentially updating particle weights as we observe condition statements (i.e.~data) based on how likely this data is deemed to be.
 
 The GADT is traversed top down, with particles being initialised at a `leaf' - primitives or returns. From this root, bind functions apply functions to the particles, and conditional statements updates the weights and resamples. The \emph{resample} function takes a set of particles and takes samples from this set with replacement - this is the `bootstrap' resampling method. The output distribution is conditioned by the total weight of all particles. Increasing the number of particles finds a more accurate distribution with a finer resolution, but also increases the amount of time and memory required.
 
@@ -394,9 +398,9 @@ $O = \big(\begin{smallmatrix}
 \end{smallmatrix}\big)$.
 
 \paragraph{Linear Regression}
-Finally, this example uses multiple 2-D data points to infer a continuous (straight line) distribution$ y=\beta_1 x_1 + \beta_0 + \epsilon$ where  $\beta_i$ are the terms to be determined, and $\epsilon$ represents random error. In Bayesian linear regression, we also use prior distributions to augment the data:   $y \sim N(\beta_0 + \beta_1 x_1 + \epsilon, 1.)$ as the likelihood model and $\beta_0 \sim N(0,1)$ and $\beta_1 \sim N(0,1)$ the priors over the slope and $y$-intercept.
+Finally, this example uses multiple 2-D data points to infer a continuous (straight line) distribution$ y=\beta_1 x_1 + \beta_0 + \epsilon$ where  $\beta_i$ are the terms to be determined, and $\epsilon$ represents random error. In Bayesian linear regression, we also use prior distributions to augment the data:   $y \sim N(\beta_0 + \beta_1 x_1 + \epsilon, 1)$ as the likelihood model and $\beta_0 \sim N(0,1)$ and $\beta_1 \sim N(0,1)$ the priors over the slope and $y$-intercept.
 
-As an example, Figure~\ref{lst:linreg} compares implementation of the linear regression model in the three languages used for evaluation: \pupil, Anglican (embedded in Clojure) and WebPPL (embedded in JavaScript).
+As an example, Figure~\ref{lst:linreg} compares implementation of the linear regression model in the three embedded languages used for evaluation: \pupil (OCaml), Anglican (Clojure) and WebPPL (JavaScript).
 
 All tests are carried out on a single core of an Intel\textsuperscript{(R)} Core\textsuperscript{(TM)} i5-7200U CPU @ 2.50GHz. We compare the performance of \pupil against Anglican and WebPPL, well-known universal PPLs embedded in different host languages, for those inference algorithms for which there are comparable implementations. Figures~\ref{fig:time-perf} and~\ref{fig:mem-perf} compares \pupil against these languages for a range of models and inference procedures. We consider both running time and peak memory usage. We see that \pupil performs consistently better that WebPPL in both memory and time, perhaps because it uses NodeJS incurring interpretation overheads. It also exhibits less variance, except when using rejection sampling for the Coin model. \pupil slightly outperforms Anglican on the two continuous models except when using rejection sampling (the current implementation is quite naive) but is generally slower than Anglican for the discrete models. However, \pupil outperforms both Anglican and WebPPL in terms of peak memory usage. Although all three languages are garbage collected, OCaml generates native binaries rather than relying on a virtual machine, and so does not incur the overheads introduced by the JVM (used by Clojure, Anglican's implementation language) and the NodeJS runtimes.
 
@@ -428,6 +432,7 @@ We have presented the design and evaluation of \pupil, a universal probabilistic
 % \end{acks}
 
 {
+  \clearpage
   \bibliographystyle{ACM-Reference-Format}
   \bibliography{owl-ppl.bib}
 }

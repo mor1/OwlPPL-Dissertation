@@ -10,6 +10,4 @@
         (normal (+ c (* m x)) 1.)
         y))
      observations)
-    m
-  )
-)
+    m))

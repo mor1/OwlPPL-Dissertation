@@ -6,4 +6,4 @@ type _ dist =
   | Conditional : ('a -> float) * 'a dist -> 'a dist
 let return x = Return x
 let bind d f = Bind (d, f) (* provides ( let* )  *)
-let product d1 d2 = Independent (d1, d2) (* provides ( and* )  *)
+let product d1 d2 = Independent (d1, d2) (* provides ( and* ) *)
