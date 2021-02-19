@@ -770,406 +770,88 @@ Due to the fact that my PPL allows composition of inference algorithms, a basic 
 
 % \begin{noindent}
 \begin{listing}
-  \begin{ocamlcode-in}
+\begin{ocamlcode-in}
     let pimh k n d = mh k (Smc.smc n d)
-  \end{ocamlcode-in}
+\end{ocamlcode-in}
   \caption{Particle-Independent Metropolis-Hastings}
 \end{listing}
 % \end{noindent}
 
-
-\section{Visualisations}
-Visualising the output distributions from inference can be done using the \texttt{Owl\_plplot} module, which allows plotting directly from OCaml, rather than having to interface with other programs manually. I have implemented several functions which simplify visualising distributions created by my PPL.
-
-Empirical distributions are approximated by histograms displayed as bar charts using \texttt{Owl\_plplot}. For discrete distributions, this conversion is simple - each bar is simply the probability of the distribution at each value in the support. This is calculated by drawing $N$ samples, then for each value $x_i$, finding $\frac{n}{N}$, where $n$ is the number of samples that equal $x_i$, to find the approximate probability of that value in the distribution, $P(X = x_i)$. Discrete distributions can also have their cdf visualised as a step function.
-
-\begin{figure}[!htb]
-  \centering
-  \subfloat[PDF]{{\includegraphics[width=0.4\textwidth]{figs/binompdf_hist.png} }}%
-  \qquad
-  \subfloat[CDF]{{\includegraphics[width=0.4\textwidth]{figs/binom_ecdf.png} }}%
-  \caption{Samples from a binomial distribution visualised, $n=10,000$}
-  \label{fig:vis-binom}
-\end{figure}
-
-Continuous distributions are also displayed as histograms, with a set of samples being put into $n$ equal width bins. The height of each bar is the pdf, which is calculated by finding the number of samples in each bin, then dividing by the total number of samples. To display the cdf, we can display the empirical cdf directly as a scatter plot, or join points to draw a step function.
-
-\begin{figure}[!htb]
-  \centering
-  \subfloat[PDF]{{\includegraphics[width=0.4\textwidth]{figs/normpdf_hist.png} }}%
-  \qquad
-  \subfloat[CDF]{{\includegraphics[width=0.4\textwidth]{figs/norm_ecdf.png} }}%
-  \caption{Approximate pdf and cdf of samples from a standard normal distribution}
-  \label{fig:vis-norm}
-\end{figure}
-
-Other important visualisations for continuous distributions are the Q-Q and P-P plots. These provides a way to qualitatively compare distributions. P-P plots plot the cdfs of two distributions against each other, that is, for two cdfs $F$ and $G$, the points $(F(z), G(z))$ are plotted for some values of z in the range $(-\infty,+\infty)$. Q-Q plots plot the quantiles of both distributions - it uses the inverse of the cdfs (the ppf) to plot the points $(F^{-1}(q), G^{-1}(q))$, where $q$, the quantile, is in the interval $[0,1]$. This plots will generally use as many points as the data allows, and calculate the percentile for every data point available. For both plots, if all the points lie on the the line $y=x$, the distributions are identical. These plots are often used to find the differences between a theoretical expected distribution and the distribution given by the data. This can be used in the PPL context to find whether a distribution given by a model matches what was expected in the theory. Figure \ref{fig:vis-qq} shows the output of inference for a model that is expected to output a beta distribution (the coin model in section \ref{sec:coin}) - the points are close to the expected line, showing successful inference.
-
-\begin{figure}[!htb]
-  \centering
-  \subfloat[Q-Q plot]{{\includegraphics[width=0.4\textwidth]{figs/qq.png} }}%
-  \qquad
-  \subfloat[P-P plot]{{\includegraphics[width=0.4\textwidth]{figs/pp.png} }}%
-  \caption{Plots to compare inferred distributions with the exact solutions}
-  \label{fig:vis-qq}
-\end{figure}
-
-For primitive continuous distributions, a smooth line can also be drawn since we have a function that can calculate the exact pdf or cdf. This can also be overlaid onto a histogram, to compare two distributions as in Figure \ref{fig:vis-samples}.
-
-\begin{figure}[!htb]
-  \centering
-  \begin{minipage}{0.45\textwidth}
-    \centering
-    \ocamlcode{code_snippets/plotter.ml}
-    % \captionof{listing}{Code to produce plot}
-  \end{minipage}
-  \begin{minipage}{0.45\textwidth}
-    \centering
-    \includegraphics[width=\linewidth]{figs/coin_compare.png}
-    % \captionof{figure}{Output}
-  \end{minipage}
-  %
-  \caption{The approximate and exact pdf of the output of inference for a biased coin model, with code to produce plot}
-  \label{fig:vis-samples}
-\end{figure}
-
-
-\section{Testing}\label{sec:impl-testing}
-
-Testing systems which are inherently random can be tricky, as it is difficult to test behaviour that is expected to change from one execution to the next. For a PPL, the most important functions to test are inference procedures, and ensuring the posterior samplers that are returned are correct. The issue is that the sequence of samples generated will change every run.
-
-One approach is to set a fixed random seed and make sure the same sequence of results are produced. The aim of a unit test, however, is to make sure that a desired property does not change from one version of the code to the next. The desired property here is that the samples fit a distribution, not that the same sequence is generated. For example, for sampling from $X \sim Bernoulli(0.5)$, we might observe true,false,true,false. However, the sequence of false,true,false,true would also satisfy the distribution (and be correct), but would fail the test. Even with a fixed random seed, a change in code may cause new outputs even though the desired statistical property hasn't changed.
-
-Another approach is to perform a hypothesis test such as Kolmogorov-Smirnov \cite{massey1951kolmogorov}, to ensure distributions produced by my library are equal to what is expected. The alternative hypothesis is that the samples do not fit the distribution, and we aim to not accept this. A problem with tests of this kind is that they are expected to fail sometimes. There are two possible errors:
-\begin{itemize}
-\item \textit{Type 1 error} - false positive where we reject a true null hypothesis, equal to the significance level of the test.
-\item \textit{Type 2 error} - false negative where we fail to reject a false null hypothesis.
-\end{itemize}
-In unit testing terms, tests will sometimes fail for functions that work, and sometimes succeed for functions that are subtly broken, so unit tests based on hypothesis tests will be flaky. In fact, since we expect these tests to fail a certain percentage of the time, if they do not sometimes fail there is a problem with our program.
-% maybe put the type 1/type 2 error diagram here?
-
-I decided to use hypothesis testing to evaluate my PPL's inference implementations, but did not build them into automated regression testing due to their flakiness. Instead, I used weaker unit tests for inference functions, testing that they could be applied to example models and produce samples without raising any exceptions. The only inference algorithm that could be unit tested thoroughly was the exact inference method, which is deterministic and always produces the correct (exact) posterior.
-
-I wrote comprehensive unit tests for the deterministic functionality. The test framework I used, \texttt{Alcotest}, checks that outputs of functions match expected values. All the helper functions (e.g. normalise), the types which could be reliably created with the same values (e.g. empirical distributions), and simple distribution properties (e.g. sampling from a Dirac distribution always produces the same value) were tested.
-
-I also used an additional library \texttt{Quickcheck}, to test that a specified invariant holds for a function - it uses randomly generated inputs to check a wide range of values. As an example (Listing \ref{lst:test}), for the normalise function, we expect that the output probabilities always sum to one, no matter the input array - Listing \ref{lst:test}.
-
-% \begin{noindent}
-\begin{listing}[!htb]
-  \centering
-  \begin{ocamlcode-in}
-    let test_normalise_sum_to_1 =
-    QCheck.Test.make ~count:1000 ~name:"test normalisation"
-    QCheck.(list (pair int float)) (* type to randomly generate *)
-    (fun l -> (List.sum ~f:snd (normalise l)) = 1.)
-  \end{ocamlcode-in}
-  \caption{Testing the normalisation function for particles}
-  \label{lst:test}
-\end{listing}
-% \end{noindent}
-
-A subset of the test output and code coverage are given in Figure \ref{fig:test-out}.
-
-\begin{figure}[!htb]
-  \centering
-  \subfloat[Test report, abbreviated]{{\includegraphics[width=0.6\textwidth]{figs/tests.png} }}%
-  \hfill
-  \subfloat[Code coverage report]{{\includegraphics[width=0.35\textwidth]{figs/coverage.png} }}%
-  \caption{Output from running unit tests}
-  \label{fig:test-out}
-\end{figure}
-
-%% EVALUATION
-
 \section{Evaluation}
 \label{s:evaluation}
 
-\textit{So far, I have developed a PPL that can be used to define arbitrary probabilistic models and perform Bayesian inference on them. To evaluate the performance of my PPL, I will present some examples to show programs written in my PPL and translated into equivalent programs in other PPLs, and then measure time and memory consumption of inference\footnote{All tests are carried out on a single core of an Intel\textsuperscript{(R)} Core\textsuperscript{(TM)} i5-7200U CPU @ 2.50GHz}. I will also determine the correctness of inference procedures on simple problems by using hypothesis tests to assert posterior samples fit the expected distribution.}
+Testing inherently statistical code is more complex than deterministic code. One could fix a random seed, ensuring the same sequence of results are produced but this is overly strict: we desire only that samples fit a distribution not that the same sequence is produced. A better approach is to perform hypothesis testing using, e.g.,~Kolmogorov-Smirnov~\cite{massey1951kolmogorov}, to ensure the correct distributions are produced but such tests are correctly expected to fail with a given rate making them unsuitable for unit testing. To evaluate the correctness of \pupil we use the $\chi^2$ and Kolmogorov-Smirnov (K-S) statistical tests that measure how similar two distributions are to each other (goodness-of-fit) by comparing the empirical distribution of 10,000 samples from an approximation to an exact distribution. All tests used a significance level $\alpha = 0.05$ with null/alternative hypotheses that the sample data follow/do not follow the desired distribution. All test statistics exceed 0.05, so we do not reject the null hypothesis in any case, indicating that the distributions are not significantly different at the 5\% significance level.
 
-\section{Examples}
-To show how my PPL would be used on real problems, I now outline a set of example problems. The first examples here are simple, and have analytic solutions - this is so that I can then test the correctness of applying inference on them. More complex realistic models are also included to test performance. Full derivations of the solutions as well as mathematical descriptions of the models are given in appendix \ref{app:examples}.
+We use four example problems in our evaluation.
 
-\subsection{Sprinkler}
-% to show exact inference on discrete model
-The sprinkler model is a commonly used example in Bayesian inference due to it's simplicity. It is an example of a \textit{Bayesian network}, and can be visualised as in Figure \ref{fig:sprinkler-network}. The code in Listing \ref{lst:sprinkler} shows the model in the diagram encoded as a program. This particular program models the probability of rain given that the grass is wet.
+% \begin{figure}
+%   \centering
+%   \includegraphics[height=1.5in]{figs/sprinkler-network.png}
+%   \caption{\label{fig:sprinkler-network}Sprinkler model as a network.}
+% \end{figure}
+\paragraph{Sprinkler}
+The sprinkler model is an example of exact inference on a discrete model represented by a Bayesian network, % (Figure~\ref{fig:sprinkler-network})
+a commonly used simple example in Bayesian inference. We model the probability of rain given that the grass is wet, itself dependent on whether or not it is raining or the sprinkler is on, and the probability of rain and the sprinkler being on are dependent on whether or not it is cloudy.
 
-% \begin{noindent}
-\begin{figure*}[!htb]
+\paragraph{Biased Coin}
+An example of exact inference on a continuous model involves a coin being flipped $n$ times that lands on heads $x$ times, where we seek the distribution over the weight of the coin (i.e., how likely it is to land on heads again). The likelihood model is a binomial, $X \sim \text{Binom}(n,\theta)$, and the prior is uninformative, $\Theta \sim \text{Uniform}(0,1)$.
+
+\paragraph{Hidden Markov Models}
+Hidden Markov Models (HMMs) are more complex, having a sequence of hidden states that emit observed states. There are two distributions involved, whether discrete or continuous: \one~the \emph{transition distribution} defining how likely the next state is given the current state, and \two~the \emph{emission distribution} over the observed states given the hidden state. Our model uses discrete distributions, with hidden and observed states \emph{True} and \emph{False}, starting state \emph{True}, and transition matrix
+$T = \big(\begin{smallmatrix}
+  0.7 & 0.3 \\
+  0.3 & 0.7
+\end{smallmatrix}\big)$
+and emission matrix,
+$O = \big(\begin{smallmatrix}
+  0.9 & 0.1 \\
+  0.1 & 0.9
+\end{smallmatrix}\big)$.
+
+\paragraph{Linear Regression}
+Finally, this example uses multiple 2-D data points to infer a continuous (straight line) distribution$ y=\beta_1 x_1 + \beta_0 + \epsilon$ where  $\beta_i$ are the terms to be determined, and $\epsilon$ represents random error. A frequentist approach minimises the sum of least squares between the known values and the predicted outputs to find a single best set of values for the parameters. In Bayesian linear regression, we also use prior distributions to augment the data:   $y \sim N(\beta_0 + \beta_1 x_1 + \epsilon, 1.)$ as the likelihood model and $\beta_0 \sim N(0,1)$ and $\beta_1 \sim N(0,1)$ the priors over the slope and $y$-intercept.
+
+\begin{figure*}
   \centering
-  \begin{minipage}{0.47\linewidth}
-    \ocamlcode{code_snippets/sprinkler.ml}
-    \captionof{listing}{Sprinkler model in OwlPPL}
-    \label{lst:sprinkler}
-  \end{minipage}
-  \begin{minipage}{0.47\linewidth}
-    \includegraphics[width=\linewidth]{figs/sprinkler-network.png}
-    \captionof{figure}{Sprinkler model as a network}
-    \label{fig:sprinkler-network}
-    \vspace{0.3cm}
-    \begin{ocamlcode-in}
-      let () =
-      exact_inference sprinkler_model
-      |> print_exact_bool
-      (*false: 0.13706 true: 0.86294*)
-    \end{ocamlcode-in}
-    \captionof{listing}{Output of inference}
-    \label{lst:inf-output}
-  \end{minipage}
-  % \caption{}
-  % \label{}
+  \begin{subfigure}[t]{\textwidth}
+    \centering
+    \input{tikz/times_plot.tex}
+    \caption{\label{fig:time-perf}
+      Inference time for different models and inference algorithms.}
+  \end{subfigure}
+  \begin{subfigure}[t]{\textwidth}
+    \centering
+    \input{tikz/mems_plot.tex}
+    \caption{\label{fig:mem-perf}
+      Memory usage for different models, all using an MCMC algorithm.}
+  \end{subfigure}
+  \caption{\pupil performance, taking 10,000 samples from the posterior, averaged over 20 runs. Results shown for Metropolis-Hastings (\emph{mh}), Bootstrap Particle Filter (\emph{smc}), and Rejection Sampling (\emph{rej}). Error bars show the 95\% confidence interval. }
 \end{figure*}
-% \end{noindent}
 
-\subsection{Biased Coin} \label{sec:coin}
-Modelling a biased coin shows an example of a very simple model with a continuous posterior that can be calculated analytically \cite{datasci}. The problem is that given a coin, we flip it 10 times and observe 9 heads. We not want to find out whether or not the coin is biased and with what weight (how likely is it to flip a heads). This model uses an uninformative prior, and the posterior over the weight of the coin is $\text{Beta}(10,2)$ (derivation given in \ref{app:coin})
+All tests are carried out on a single core of an Intel\textsuperscript{(R)} Core\textsuperscript{(TM)} i5-7200U CPU @ 2.50GHz. We compare the performance of OwlPPL against Anglican and WebPPL, well-known universal PPLs embedded in different host languages, for those inference algorithms for which there are comparable implementations. Figures~\ref{fig:time-perf} and~\ref{fig:mem-perf} compares \pupil against these languages for a range of models and inference procedures. All the models have been tested to produce correct results when using the given inference procedures. We consider both running time and peak memory usage. We see that \pupil performs consistently better that WebPPL in both memory and time, perhaps because it uses NodeJS incurring interpretation overheads. It also exhibits less variance, except when using rejection sampling for the Coin model. \pupil slightly outperforms Anglican on the two continuous models except when using rejection sampling (the current implementation is quite naive) but is generally slower than Anglican for the discrete models. However, \pupil outperforms both Anglican and WebPPL in terms of peak memory usage. Although all three languages are garbage collected, OCaml generates native binaries rather than relying on a virtual machine, and so does not incur the overheads introduced by the JVM (used by Clojure, Anglican's implementation language) and the NodeJS runtimes.
 
-The program in my PPL is shown in Listing \ref{lst:coin}, and demonstrates setting up the model, performing inference as well as finding the mean of the posterior. The application is to find the chance of the next coin flip landing heads.
-
-\begin{listing}[!ht]
-  \ocamlcode{code_snippets/coin.ml}
-  \caption{Coin model - getting the mean of the posterior}
-  \label{lst:coin}
-\end{listing}
-
-
-\begin{figure}[!htb]
-  \begin{minipage}{0.5\textwidth}
-    \centering
-    \jscode{code_snippets/webppl/coin.js}
-    \captionof{listing}{WebPPL}
-  \end{minipage}
-  \begin{minipage}{0.5\textwidth}
-    \centering
-    \clojurecode{code_snippets/anglican/coin.clj}
-    \captionof{listing}{Anglican}
-  \end{minipage}
-  \caption{The coin model in WebPPL (JS) and Anglican (Clojure)}
-  \label{fig:compare-coin}
-\end{figure}
-
-The comparison given in Figure \ref{fig:compare-coin} shows how the same model is defined in other languages. Both languages use similar constructs, despite differing syntax. This example also shows that my PPL is similar to existing systems, and is not more verbose.
-
-\subsection{HMM}
-Hidden Markov models are slightly more involved models, where we have a sequence of hidden states, which emit observed states. There are two distributions involved here, the transition distribution, which defines how likely the next state is given the current state, and the emission distribution, which is the distribution over the observed states given the hidden state. The example in Listing \ref{lst:hmm} uses discrete distributions, but any type of distribution can be used. The exact posterior for simple models can be found using the forward-backward algorithm, detailed in \ref{app:hmm}.
-% use forward-backward to get exact posterior
-\begin{listing}[!ht]
-  \ocamlcode{code_snippets/hmm.ml}
-  \caption{Hidden Markov Model}
-  \label{lst:hmm}
-\end{listing}
-
-\subsection{Linear Regression}
-This example shows how to use multiple data points to infer a continuous distribution. This example can be used to infer the parameters of a line through a set of 2-D points. The fold function can be used to condition on many observations easily. The fmap function is used to map outputs from a distribution. Since the linear regression model produces tuples of parameters, we can create individual distributions over either one. The comparison programs in other languages are given in \ref{app:linreg}.
-
-\begin{listing}[!ht]
-  \ocamlcode{code_snippets/linreg.ml}
-  \caption{Linear Regression}
-  \label{lst:linreg}
-\end{listing}
-
-\subsection{Infinite Mixture Model - Dirichlet Process}
-This example demonstrates the common task of clustering a set of data points without knowledge of the number of clusters. This is a model which cannot be expressed in PPLs such as STAN or Infer.Net, since it is a non-parametric Bayesian model - we do not know the number of clusters beforehand. The infinite nature of this model requires the use of unbounded recursion and demonstrates the power of universal PPLs.
-
-The prior for this model is a Dirichlet process \cite{teh2010dirichlet}, which defines a distribution over distributions. This model is a Dirichlet Process mixture model with an infinite number of Gaussians components \cite{dpmm}, and the number of clusters is allowed to grow with the dataset size. I use a mixture of Gaussians, meaning the likelihood of a point belonging to each cluster is given by different normal distributions.
-
-\begin{listing}[H]
-  \ocamlcode{code_snippets/dpmm.ml}
-  \captionof{listing}{Infinite mixture model in OwlPPL, gets the cluster assigned to each data point}
-\end{listing}
-
-
-% Need to show examples which can't be done in graph based thing - maybe geometric somewhere
-% Need to explain why these examples are actually difficult.
-% http://www.cs.cmu.edu/~epxing/Class/10708-16/slide/lecture18-DP.pdf
-
-
-\section{Statistical tests}
-To evaluate the correctness of my PPL, I used statistical tests which measure goodness-of-fit, i.e. how similar two distributions are to each other. I compare the empirical distribution of 10,000 samples from an approximated distribution to an exact distribution which is calculated analytically. Test distributions (e.g. the $\chi^2$ distribution) were calculated using \texttt{Owl}, and functions to calculate the test statistics and p-values are given in the \texttt{Evaluation} module.
-
-For all tests described below, I set the significance level $\alpha = 0.05$ and use null and alternative hypotheses as follows:
-
-$H_0:$ The sample data follow the desired distribution\\
-$H_1:$ The sample data do not follow the desired distribution
-
-\subsection{Chi-squared}
-
-The $\chi^2$ test is a simple goodness-of-fit test which can test discrete distributions. The test statistic is as follows, with each $i$ being a distinct element in the distribution, $x_i$ is the observed number of samples with the value $i$, and $m_i$ is the expected number of samples for the value $i$.
-%
-\[X^{2}=\sum _{i=1}^{k}{\frac {(x_{i}-m_{i})^{2}}{m_{i}}}\]
-%
-This test statistic is compared against the critical value (at the significance level) of the chi-squared distribution, with $k-1$ degrees of freedom , where k is the number of possible values of the distribution.
-
-\subsubsection{Results}
-\begin{table}[!ht]
-  \centering
-  % \csvautotabular{data/hypothesis/hypothesis-chi.csv}
-  \pgfplotstableread[col sep=comma,]{data/hypothesis/hypothesis-chi.csv}\normal
-  \pgfplotstabletranspose[colnames from = 0]\transpose\normal
-  \pgfplotstabletypeset[
-  every row/.style={/pgf/number format/sci},
-  every head row/.style={before row=\toprule, after row=\midrule},
-  every last row/.style={after row=\bottomrule},
-  every col no 0/.style={
-    string type,
-    column name={Inference Method},
-    column type={@{}l}},
-  % column type={r},
-  every col no 1/.style={
-    precision=3,
-    fixed zerofill=true,
-    column type={c}},
-  every col no 2/.style={
-    column type={c@{}},
-    precision=3,
-    fixed zerofill=true
-  },
-  ]\transpose
-  \caption{p-values of $\chi^2$ test on different models using different inference procedures}
-  \label{tab:chi-pvals}
-\end{table}
-
-Table \ref{tab:chi-pvals} shows the results of carrying out the test on all inference procedures for the sprinkler and hidden markov models. All of the values are greater than 0.05, so we do not reject the null hypothesis in each case. Therefore we conclude that, at the 5\% significance level, the distributions are not significantly dissimilar.
-
-\subsection{Kolmogorov-Smirnov}
-
-The Kolmogorov-Smirnov test is a non parametric test which is used to compare a set of samples with a distribution - this is the one-sample K-S test. There is also a two-sample K-S test, which compares two sets of samples against each other. I use the one-sample test here to compare samples taken from the inferred posteriors to their exact analytic solutions.
-
-The test statistic is as follows, with $F_n(x)$ being the empirical cumulative distribution of n samples, and $F(x)$ being the exact cumulative distribution.
-\begin{align*}
-  F_{n}(x) & =\frac{1}{n}\sum_{i=1}^{n}I_{[-\infty ,x]}(X_{i}) \\
-  D_{n}    & =\sup_{x}|F_{n}(x)-F(x)|
-\end{align*}
-This test statistic is compared against the critical values of the Kolmogorov distribution, rejecting the null hypothesis if $\sqrt{n}D_n > K_\alpha$, where $K_\alpha$ is the critical value at the significance level $\alpha$, and $n$ is the number of samples.
-
-\subsubsection{Results}
-
-\begin{table}[!ht]
-  \centering
-  % \csvautotabular{data/hypothesis/hypothesis-ks.csv}
-  \pgfplotstableread[col sep=comma,]{data/hypothesis/hypothesis-ks.csv}\normal
-  \pgfplotstabletranspose[colnames from = 0]\transpose\normal
-  \pgfplotstabletypeset[
-  string type,
-  % every col no 1/.style={precision=1}
-  % every row/.style={/pgf/number format/sci},
-  every head row/.style={before row=\toprule, after row=\midrule},
-  every last row/.style={after row=\bottomrule},
-  every col no 0/.style={
-    string type,
-    column name={Inference Method},
-    column type={@{}l}},
-  every col no 1/.style={
-    column type={c@{}},
-    precision=3,
-    fixed zerofill=true
-  },
-  ]\transpose
-  \caption{p-values of K-S test on different models using different inference procedures}
-  \label{tab:ks-pvals}
-\end{table}
-Table \ref{tab:ks-pvals} shows that for the biased coin model, the p-value obtained from all tests are greater than then 0.05. This means we do not reject $H_0$ for any inference procedure, so we can be confident (at the 5\% significance level) that the inference procedures are correct. We can be more sure of some inference procedures, indicated by higher p-values. These results show that there is no significant difference between the generated posterior and the real solution.
-
-\FloatBarrier
-
-\section{Convergence of sampling}
-I also used the KL-divergence metric to determine the (dis)similarity of two distributions. The formula for KL Divergence of discrete distributions $P$ and $Q$ is easy to calculate by \eqref{eq:kl_disc}
-%
-\begin{equation} \label{eq:kl_disc}
-  {D_{\text{KL}}(P\parallel Q)=\sum _{x\in {\mathcal {X}}}P(x)\log \left({\frac {P(x)}{Q(x)}}\right)}
-\end{equation}
-%
-The continuous version is similar, with $p$ and $q$ now being density functions as in \eqref{eq:kl_cont}.
-%
-\begin{equation} \label{eq:kl_cont}
-  {D_\text{KL}}(P\parallel Q)=\int _{-\infty }^{\infty }p(x)\log \left({\frac {p(x)}{q(x)}}\right)\,dx
-\end{equation}
-%
-% Since we cannot compute this integral exactly (we only have the exact density function for one of the distributions), I put the set of samples into discrete bins to approximate $q(x)$. I then used Monte Carlo integration to compute the integral.
-Since I only have a set of samples from $q$, this integral can't be calculated exactly - there is no exact density function. However, there are ways to estimate density functions, as in (Perez 2008) \cite{perez2008kullback}. The first step is to approximate the cdf by finding the empirical cdf, $P_e$ \eqref{eq:pe} then linearly interpolating between points to produce a continuous function $P_c$ \eqref{eq:pc}. Estimating the derivative of $P_c$ then gives the pdf estimator, $\hat{P}$ \eqref{eq:phat}.
-%
-\begin{align}
-  P_e(x)     & = \frac1{n}\sum_{i=1}^n U(x-x_i) ,        & \text{ where $U$ is the step function}\label{eq:pe}    \\
-  P_c(x)     & = \begin{cases}
-    0          & x<x_0                                                                                          \\
-    a_ix+b_i   & x_{i-1} \leq x \le x_i                                                                         \\
-    1          & x_{n+1} \leq x
-  \end{cases} \label{eq:pc} ,& \text{$a_i$ and $b_i$ chosen to make $P_c$ continuous }\\
-  \hat{P}(x) & = \frac{P_c(x+\delta) - P_c(x)}{\delta} , & \text{ for sufficiently small }\delta  \label{eq:phat}
-\end{align}
-%
-The final estimator \eqref{eq:final_kl_est} is given by using the exact pdf of $q$ and performing Monte Carlo integration.
-%
-\begin{equation}
-  \label{eq:final_kl_est}
-  \hat{D}_{KL}(P \| Q) = \frac1{n}\sum_{i=1}^n \log\left(\frac{\hat{P}(x_i)}{q(x_i)}\right)
-\end{equation}
-%
-Both the metrics (discrete and continuous) were computed with code written using the \texttt{EmpiricalDist} modules.
-
-The idea behind conducting this test is ensuring that the KL divergence decreases as we take more samples from the posterior. This ensures that the solution converges to the correct distribution - a KL divergence of 0 implies the distributions are identical.
-
-\begin{figure}[H]
-  \centering
-  \input{tikz/kl_plot.tex}
-  \caption{Plot of KL-divergence with increasing number of samples for different models and inference procedures - average over 20 runs}
-  \label{fig:kl}
-\end{figure}
-
-Figure \ref{fig:kl} shows the results of this test. For each inference procedure, we can see that the KL-divergence for each model generally decreases as we take more samples. Rejection sampling is consistently the worst performing inference procedure, with particle based methods such as the particle filter or importance sampling generating more accurate distributions. These plots have all been smoothed by taking a moving average in order to reduce the impact of noise.
-
-\section{Performance}
-% probabilistic c (Paige14) makes the same comparison
-% TODO: measure performance with varying no. particles (measure KL with difference no. particles)
-
-I evaluated the performance of OwlPPL against Anglican and WebPPL. All of these languages are universal PPLs embedded in different host languages, so are comparable to my PPL. I only compare the inference algorithms for which there are comparable implementations in the other languages.
-
-Figures \ref{fig:time-perf} and \ref{fig:mem-perf} shows how my PPL compares against these languages for a range of models and inference procedures. All the models have been introduced previously, and have been shown to produce correct results in my PPL when using the given inference procedures. I measure both running time\footnote{timed using libraries in respective languages} and peak memory usage\footnote{computed using \texttt{time -f "\%M"}}. Here, smc refers to the particle filter implementation.
-
-\begin{figure}[!ht]
-  \centering
-  \input{tikz/times_plot.tex}
-  \caption{Time taken for inference against other languages for different models and inference algorithms, taking 10,000 samples from the posterior, averaged over 20 runs. Error bars show the 95\% confidence interval}
-  \label{fig:time-perf}
-\end{figure}
-
-\begin{figure}[!ht]
-  \centering
-  \input{tikz/mems_plot.tex}
-  \caption{Memory Usage of my PPL, compared against other languages for different models, all using an MCMC algorithm, taking 10,000 samples from the posterior, averaged over 20 runs. Error bars show the 95\% confidence interval}
-  \label{fig:mem-perf}
-\end{figure}
-
-These graphs show that OwlPPL performs consistently better that WebPPL in both memory and time. There is also less variance in the performance of OwlPPL, except in the case of rejection sampling for the coin model.
-
-OwlPPL slightly outperforms Anglican on the two continuous models for some algorithms (My implementation of rejection sampling performs poorly on continuous models, which is expected from my naive implementation), but is generally slower than Anglican for the discrete models. This may be because Anglican uses a more efficient representation for discrete distributions, and my representation may need to be optimised. Anglican is a Clojure library, which runs on the JVM, whereas WebPPL uses NodeJS, a JavaScript interpreter.  WebPPL may incur and interpretive overhead, explaining slower running times.
-
-My PPL is significantly better than both Anglican and WebPPL in terms of peak memory usage. All three languages are garbage collected, but OCaml does not run code through a virtual machine, and native binaries are generated. This could explain the lower memory usage, with the overheads of the JVM and the node runtime dominating in those languages.
-
-I also measured the running time of inference with increasing data used. I tested the linear regression model, increasing the length of the array used as input. Models which are conditioned on more data are expected to give more accurate results so it is desirable for inference to have low complexity.
-
-My results show that running time increases linearly with the size of data. Figure \ref{fig:time-datasize} shows that all the inference functions run in time linear to the size of the input, but the constant factors vary substantially - for example, Sequential Monte Carlo has a much steeper gradient than Metropolis-Hastings, but both have the same shape. This also shows how some inference procedures take much more time than others, however, this often results in more accurate results. For example, the particle filter is slower than rejection sampling here, but Figure \ref{fig:kl} shows that the particle filter produces more accurate posterior distributions. I use a log y-axis here due to the wildly varying gradients of the functions - the curves shown map to lines on a linear axis.
-
-\begin{figure}[!ht]
+\begin{figure}
   \centering
   \input{tikz/linreg_by_datasize.tex}
-  \caption{Time taken for inference as a function of input data length as the mean of 10 runs each taking 1,000 samples from the posterior, shaded areas are the 95\% confidence interval ($\pm 2\sigma$)}
-  \label{fig:time-datasize}
+  \caption{\label{fig:time-datasize}
+    Time taken for inference as a function of input data length as the mean of 10 runs each taking 1,000 samples from the posterior, shaded areas are the 95\% confidence interval ($\pm 2\sigma$)}
 \end{figure}
 
-%% CONCLUSION
+It is also important to consider running time of inference as more data is used, as  models conditioned on more data should  give more accurate results. We evaluated  the linear regression model, increasing the length of the array used as input, and see that running time increases linearly with the size of data. Figure~\ref{fig:time-datasize} shows all inference functions running in time linear to the size of the input, albeit with substantial variation in constant factors, e.g.,~Sequential Monte Carlo has a much steeper gradient than Metropolis-Hastings.
+
+\begin{figure*}
+  \centering
+  \input{tikz/kl_plot.tex}
+  \caption{\label{fig:kl}
+    Plot of KL-divergence with increasing number of samples for different models and inference procedures - average over 20 runs. I use a log y-axis here due to the wildly varying gradients of the functions - the curves shown map to lines on a linear axis.}
+\end{figure*}
+
+Figure~\ref{fig:kl} shows the trade-off between speed and accuracy: the particle filter is slower than rejection sampling here but produces more accurate posterior distributions. For each inference procedure, we can see that the KL-divergence for each model generally decreases as we take more samples. Rejection sampling is consistently the worst performing inference procedure, with particle based methods such as the particle filter or importance sampling generating more accurate distributions. These plots have all been smoothed by taking a moving average in order to reduce the impact of noise.
 
 \section{Conclusion}
 \label{s:conclusion}
 
-In this project, I have designed, developed and tested a probabilistic programming language embedding in OCaml. It has achieved all the core requirements as well as some of the extensions. My PPL can represent a wide variety of models, including infinite models with unbounded recursion, fulfilling the definition of a universal PPL. Standard OCaml features, such as pattern matching or higher order functions, and well as existing deterministic functions can be used in my PPL. Models can then be combined in complex ways, and existing OCaml libraries can be used within models.
-
-I have also performed extensive evaluation of my PPL, showing that the performance is competitive with other universal PPLs. In particular, the memory usage of OwlPPL proved to be significantly lower than other languages, which could make it appropriate for edge computing. In addition, performing hypothesis tests shows that my PPL produces correct results, and my implementations of inference procedures are very unlikely to be faulty, which is the best guarantee that can be given. Programs written in my PPL are also not overly verbose when compared to these languages.
-
-Future work would mainly focus on how to improve inference. For example, there are several algorithms I have implemented that would benefit from the use of multiple cores - which may be possible with the ongoing development of multi-core OCaml. In particular, the Independent variant could benefit greatly from parallelisation.
-
-I could also use more efficient inference algorithm implementations. This may require changing the core data structure or adding more variants to give more information, for example adding variable names in order to keep track of the primitives being used, or allowing a user to specify guide distributions for models to create more specific proposal distributions for MCMC (a technique used by several PPLs, including Pyro and WebPPL).
-
-One of my initial goals was for my PPL to be able to represent as many types of model as possible. This prompted the use of a trace based approach (inspired by Church) rather than using a computation graph. However, there are recent universal PPLs which use dynamic computation graphs to make inference more efficient (e.g. Pyro). Since \texttt{Owl} contains a powerful computational graph implementation, this could be a further extension.
+We have presented the design and evaluation of \pupil, a universal probabilistic programming language shallowly embedded in OCaml. It can represent a wide variety of models, including infinite models with unbounded recursion, while supporting all the standard OCaml language features such as pattern matching or higher order functions. It allows models to be combined in complex ways, and existing OCaml libraries can be used within those models. Its performance is competitive with other universal PPLs, particularly the memory usage which is significantly lower than WebPPL and Anglican -- making it potentially appropriate for edge computing. \pupil is publicly available\footnote{\url{http://github.com/anik545/OwlPPL.git}}, and we welcome improvements.
 
 % \begin{acks}
 % \end{acks}
