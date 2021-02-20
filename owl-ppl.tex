@@ -1,4 +1,4 @@
-\documentclass[sigconf]{acmart}
+\documentclass[sigconf,timestamp]{acmart}
 
 %% Rights management information.  This information is sent to you
 %% when you complete the rights form.  These commands have SAMPLE
@@ -123,7 +123,7 @@
 %% The abstract is a short summary of the work to be presented in the
 %% article.
 \begin{abstract}
-  Creating statistical models and performing inference on these models is key to data science. A probabilistic programming language (PPL) is a language for creating complex models by composing simpler models and probability distributions, separating inference from model specification, allowing inference to be performed automatically~\cite{gordon2014probabilistic}. We present \emph{\pupil}, a shallow embedded PPL in the OCaml language that leverages OCaml's expressive type system and efficient native code generation. We compare \pupil's performance to that of two well-known alternative PPLs, Anglican and WebPPL, and find that \pupil outperforms WebPPL in inference speed and is commensurate with Anglican, and in both cases uses substantially less memory, making it particularly appropriate for use in edge computing applications.
+  Creating statistical models and performing inference on them is key to data science. A probabilistic programming language (PPL) is a language for creating complex models by composing simpler models and probability distributions, separating inference from model specification, allowing inference to be performed automatically~\cite{gordon2014probabilistic}. We present \emph{\pupil}, a shallow embedded PPL in the OCaml language that leverages OCaml's expressive type system and efficient native code generation. We compare \pupil's performance to that of two well-known alternative PPLs, Anglican and WebPPL, and find that \pupil outperforms WebPPL in inference speed and is commensurate with Anglican, and in both cases uses substantially less memory, making it particularly appropriate for use in edge computing applications.
 \end{abstract}
 
 %%
@@ -173,7 +173,7 @@
 \section{Introduction}
 \label{s:introduction}
 
-Creating statistical models and performing inference on these models is key to data science. Such modelling begins by formulating a prior belief ($p(x)$) over some parameters ($x$) and the model ($p(y|x)$) which specifies the likelihood of observed data ($y$) given the parameters ($x$). The goal is then to find the posterior, the (inferred) distribution over the parameters given the data we observe ($p(x|y)$), but this is generally analytically intractable so approximate methods are used. Unfortunately, maintaining a clear separation between the approximation (or inference) method and the model itself is difficult. This reduces the re-usability of methods and the robustness of implementations, makes errors more likely, and ties performance optimisations to particular models rather than allowing them to be generalised across many models using the same inference method.
+Creating statistical models and performing inference on them is key to data science. Such modelling begins by formulating a prior belief ($p(x)$) over some parameters ($x$) and the model ($p(y|x)$) which specifies the likelihood of observed data ($y$) given the parameters ($x$). The goal is then to find the posterior, the (inferred) distribution over the parameters given the data we observe ($p(x|y)$), but this is generally analytically intractable so approximate methods are used. Unfortunately, maintaining a clear separation between the approximation (or inference) method and the model itself is difficult. This reduces the re-usability of methods and the robustness of implementations, makes errors more likely, and ties performance optimisations to particular models rather than allowing them to be generalised across many models using the same inference method.
 
 A probabilistic programming language (PPL) is a language for creating complex models by composing simpler models and probability distributions, separating inference from model specification, allowing inference to be performed automatically~\cite{gordon2014probabilistic}. This has numerous advantages: inference code is written and optimised once, independent of model; many different inference algorithms can be provided, suitable for different problems; and models can be written by domain experts, without concern for inference~\s{s:related}.
 
@@ -189,7 +189,7 @@ The contributions of this paper are to present the design of a type-safe PPL emb
 \label{s:related}
 
 \begin{table}
-  \centering
+  \centering\small
   \begin{tabular}{ l l c c l }
     \textbf{PPL}
     & \textbf{Host}
@@ -252,7 +252,7 @@ Many languages restrict the set of allowed models in order to use more efficient
 
 PPLs which can express models that have an unlimited number of random variables (and so do not compile to a static graph) are known as `universal'~\cite{borgstrom2016lambda}, and include Church~\cite{goodman2012church}, WebPPL~\cite{mobus2018structure} and Anglican~\cite{anglican-smc}. These tend to be slower at inference due to the need to support a greater range of models. Some PPLs restrict the types of distribution allowed, for example HANSEI~\cite{kiselyov2009embedded} and IBAL~\cite{ibal} only allow discrete distributions, while others also allow continuous distributions..
 
-There are two principle approaches to the implementation of PPLs. \one~Graph-based, where a finite graph representing the variables and their relationships, over which efficient inference can take place, is generated from a program, e.g,~Infer.NET~\cite{wang2011using} or JAGS~\cite{plummer2004jags}. It has the benefit of being able to process high-dimensional data well as efficient computation graph frameworks can be leveraged, e.g.,~Edward~\cite{edward}, which uses TensorFlow~\cite{tensorflow} as a backend. However, it does restrict the types of models to those that can be represented by the underlying graph. \two~Trace-based, where execution traces corresponding to each run of a program with intermediate random variables taking a particular value, are reasoned over by inference algorithms to produce a posterior distribution~\cite{anglican-smc,mobus2018structure}. This can lead to greater expressiveness as we are not limited by the constraints of a graph, but inference is often slower as more general purpose algorithms must be used.
+There are two principle approaches to the implementation of PPLs. \one~Graph-based, where a finite graph representing the variables and their relationships, over which efficient inference can take place, is generated from a program, e.g,~Infer.NET~\cite{wang2011using}, JAGS~\cite{plummer2004jags}. This can process high-dimensional data and leverage efficient computation graph frameworks, e.g.,~Edward~\cite{edward}, which uses TensorFlow~\cite{tensorflow} as a backend. However, it does restrict the types of models to those that can be represented by the underlying graph. \two~Trace-based, where execution traces corresponding to each run of a program with intermediate random variables taking a particular value, are reasoned over by inference algorithms to produce a posterior distribution~\cite{anglican-smc,mobus2018structure}. This can lead to greater expressiveness as we are not limited by the constraints of a graph, but inference is often slower as more general purpose algorithms must be used.
 
 Prior PPLs embedded in OCaml include IBAL~\cite{ibal} and HANSEI~\cite{kiselyov2009embedded}, and \pupil takes some inspiration from these particularly in implementation of efficient inference engines. A summary of several PPLs is given in Table \ref{tab:ppl-summ}.
 
@@ -279,14 +279,14 @@ Many underlying data structure can be used to represent distributions as monads.
   \centering
   \begin{subfigure}[t]{\columnwidth}
     \ocamlcode{code_snippets/adt_prep.ml}
-    \caption{\label{lst:adt}Using an ADT allows invalid values to be represented.}
+    \caption{\label{lst:adt}Using an ADT allows invalid values to be represented}
   \end{subfigure}
   \quad\\
   \begin{subfigure}[t]{\columnwidth}
     \ocamlcode{code_snippets/gadt_prep.ml}
-    \caption{\label{lst:gadteg}Using a GADT, the type checker can prevent the invalid value.}
+    \caption{\label{lst:gadteg}Using a GADT, the type checker can prevent the invalid value}
   \end{subfigure}
-  \caption{\label{lst:adtgadt}Implementations of the type for a simple language using ADTs and GADTS.}
+  \caption{\label{lst:adtgadt}Implementations of the type for a simple language using ADTs and GADTS}
 \end{figure}
 
 The main data structure we use to represent distributions is a Generalised Algebraic Data Type (GADT). As with ADTs (sum types) they have a set of constructors, but they can have their output types annotated with different return types, making them more general than ADTs whose return types are all the same. Figure~\ref{lst:adtgadt} shows the type for  a simple language comprising floats, booleans, and pairs of floats can be represented using ADTs (Figure~\ref{lst:adt}) and GADTs (Figure~\ref{lst:gadteg}). In the former case, the type checker is unable to prevent construction of invalid values such as \texttt{Add(F 0.5, B true)} because all of \texttt{F 0.5}, \texttt{B true} and \texttt{Add(..., ...)} are typed as \texttt{'a expr}. In the latter, the type checker knows the two values in the \texttt{Add} must be \texttt{float expr} and the result is a \texttt{float expr}.
@@ -340,20 +340,20 @@ We can also take into account the conditionals, and produce weighted samples, wi
     \centering
     \input{tikz/times_plot.tex}
     \caption{\label{fig:time-perf}
-      Inference time.}
+      Inference time}
   \end{subfigure}
   \begin{subfigure}[t]{\textwidth}
     \centering
     \input{tikz/mems_plot.tex}
     \caption{\label{fig:mem-perf}
-      Memory usage.}
+      Memory usage}
   \end{subfigure}
   \caption{\pupil performance on different models, taking 10,000 samples from the posterior and averaging over 20 runs. Results shown for Metropolis-Hastings (\emph{mh}), Bootstrap Particle Filter (also known as Sequential Monte Carlo, \emph{smc}), and Rejection Sampling (\emph{rej}). Error bars show the 95\% confidence interval. }
 \end{figure*}
 
 
 \subsection{Inference}
-Inference can be thought of as a program transformation~\cite{scibior2015practical, Zinkov2016ComposingIA}, corresponding in \pupil to a function of type \emph{'a dist -> 'a dist}, which allows for the composition of inference algorithms. \pupil implements a range of inference algorithms of which we describe those used in the evaluation~\s{s:evaluation}; others include Likelihood Weighting (Importance Sampling), Particle Cascade SMC, and Particle-Independent Metropolis-Hastings (PMCMC).
+Inference can be thought of as a program transformation~\cite{scibior2015practical, Zinkov2016ComposingIA}, corresponding in \pupil to a function of type \emph{'a dist -> 'a dist}, which allows for the composition of inference algorithms. \pupil implements a range of inference algorithms of which we describe those used in the evaluation~\s{s:evaluation}; others include Particle Cascade SMC, Particle-Independent Metropolis-Hastings (PMCMC), and Likelihood Weighting (Importance Sampling).
 
 \paragraph{Exact Inference}
 The simplest but usually computationally intractable (due to the normalising constant) method for calculating the posterior by calculating Bayes formula exactly is \emph{exact inference}. For discrete posterior distributions it can be thought of as calculating the probability of every possible value of the variable of interest, naive and very inefficient. As it essentially considers every possible execution trace, we do not exploit structure such as overlapping traces. It can be made slightly more efficient by using algorithms such as belief propagation~\cite{belief-prop}, but they still only work on models made up from discrete distributions. Exact inference of this kind only works on models that can be represented as finite networks, and for Bayesian networks is in fact NP-hard~\cite{cooper1990computational}, so most methods focus on approximate inference.
@@ -389,7 +389,7 @@ a commonly used simple example in Bayesian inference. We model the probability o
 An example of exact inference on a continuous model involves a coin being flipped $n$ times that lands on heads $x$ times, where we seek the distribution over the weight of the coin (i.e., how likely it is to land on heads again). The likelihood model is a binomial, $X \sim \text{Binom}(n,\theta)$, and the prior is uninformative, $\Theta \sim \text{Uniform}(0,1)$.
 
 \paragraph{Hidden Markov Models}
-Hidden Markov Models (HMMs) are more complex, having a sequence of hidden states that emit observed states. There are two distributions involved, whether discrete or continuous: \one~the \emph{transition distribution} defining how likely the next state is given the current state, and \two~the \emph{emission distribution} over the observed states given the hidden state. Our model uses discrete distributions, with hidden and observed states \emph{True} and \emph{False}, starting state \emph{True}, and transition matrix
+These are more complex, having a sequence of hidden states that emit observed states. There are two distributions involved, whether discrete or continuous: \one~the \emph{transition distribution} defining how likely the next state is given the current state, and \two~the \emph{emission distribution} over the observed states given the hidden state. Our model uses discrete distributions, with hidden and observed states \emph{True} and \emph{False}, starting state \emph{True}, and transition matrix
 $T = \big(\begin{smallmatrix}
   0.7 & 0.3 \\
   0.3 & 0.7
@@ -411,7 +411,7 @@ All tests are carried out on a single core of an Intel\textsuperscript{(R)} Core
   \centering
   \input{tikz/linreg_by_datasize.tex}
   \caption{\label{fig:time-datasize}
-    Time taken for inference as a function of input data length as the mean of 10 runs each taking 1,000 samples from the posterior, shaded areas are the 95\% confidence interval ($\pm 2\sigma$)}
+    Time taken for inference as a function of input data length as the mean of 10 runs each taking 1,000 samples from the posterior, with shaded areas indicating 95\% confidence interval ($\pm 2\sigma$)}
 \end{figure}
 
 It is also important to consider running time of inference as more data is used, as  models conditioned on more data should  give more accurate results. We evaluated  the linear regression model, increasing the length of the array used as input, and see that running time increases linearly with the size of data. Figure~\ref{fig:time-datasize} shows all inference functions running in time linear to the size of the input, albeit with substantial variation in constant factors, e.g.,~Sequential Monte Carlo has a much steeper gradient than Metropolis-Hastings.
@@ -420,7 +420,8 @@ It is also important to consider running time of inference as more data is used,
   \centering
   \input{tikz/kl_plot.tex}
   \caption{\label{fig:kl}
-    Plot of KL-divergence with increasing number of samples for different models and inference procedures, averaged over 20 runs. % We use log-log axes  due to large  variation between  the curves, which do map to straight lines on a linear axes.
+    Plot of KL-divergence with increasing number of samples for different models and inference procedures, averaged over 20 runs
+    % We use log-log axes  due to large  variation between  the curves, which do map to straight lines on a linear axes.
   }
 \end{figure}
 
@@ -429,7 +430,7 @@ Figure~\ref{fig:kl} shows the trade-off between speed and accuracy: the particle
 \section{Conclusion}
 \label{s:conclusion}
 
-We have presented the design and evaluation of \pupil, a universal probabilistic programming language shallowly embedded in OCaml. It can represent a wide variety of models, including infinite models with unbounded recursion, while supporting all the standard OCaml language features such as pattern matching or higher order functions. It allows models to be combined in complex ways, and existing OCaml libraries can be used within those models. Its performance is competitive with other universal PPLs, particularly the memory usage which is significantly lower than WebPPL and Anglican -- which may make \pupil particularly appropriate for edge computing environments. \pupil is publicly available,\footnote{\url{http://github.com/anik545/OwlPPL.git}} and we welcome improvements and further benchmarks -- we are particularly interested in starting to use the recently released PPL Bench~\cite{pplbench}.
+We have presented the design and evaluation of \pupil, a universal probabilistic programming language shallowly embedded in OCaml. It can represent a wide variety of models, including infinite models with unbounded recursion, while supporting all the standard OCaml language features, e.g.,~pattern matching, higher order functions. It allows models to be combined in complex ways, and existing OCaml libraries can be used within those models. Its performance is competitive with other universal PPLs, particularly the memory usage which is significantly lower than WebPPL and Anglican -- which may make \pupil particularly appropriate for edge computing environments. \pupil is publicly available,\footnote{\url{http://github.com/anik545/OwlPPL.git}} and we welcome improvements and further benchmarks -- we are particularly interested in starting to use the recently released PPL Bench~\cite{pplbench}.
 
 % \begin{acks}
 % \end{acks}
